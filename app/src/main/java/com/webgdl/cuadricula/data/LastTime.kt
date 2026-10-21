@@ -29,6 +29,12 @@ interface LastTimeDao {
 
     @Query("DELETE FROM last_times WHERE id = :id")
     suspend fun delete(id: Long)
+
+    @Insert
+    suspend fun insertAll(items: List<LastTime>)
+
+    @Query("DELETE FROM last_times")
+    suspend fun clear()
 }
 
 /** v1 -> v2: añade la tabla de "última vez" sin tocar los registros semanales existentes. */

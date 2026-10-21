@@ -30,6 +30,12 @@ interface WeekDao {
 
     @Query("DELETE FROM week_entries WHERE weekIndex = :weekIndex")
     suspend fun delete(weekIndex: Int)
+
+    @Upsert
+    suspend fun upsertAll(entries: List<WeekEntry>)
+
+    @Query("DELETE FROM week_entries")
+    suspend fun clear()
 }
 
 @Database(entities = [WeekEntry::class, LastTime::class, Person::class], version = 3, exportSchema = false)

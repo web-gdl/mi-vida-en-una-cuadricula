@@ -1,8 +1,10 @@
 package com.webgdl.cuadricula
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.webgdl.cuadricula.data.Backup
 import com.webgdl.cuadricula.data.LastTime
 import com.webgdl.cuadricula.data.Person
 import com.webgdl.cuadricula.data.UserSettings
@@ -10,11 +12,13 @@ import com.webgdl.cuadricula.data.WeekEntry
 import com.webgdl.cuadricula.reminder.ReminderScheduler
 import com.webgdl.cuadricula.widget.GridWidget
 import java.time.LocalDate
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class UiState(
     val loaded: Boolean = false,
@@ -101,4 +105,35 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun deletePerson(id: Long) = viewModelScope.launch { personDao.delete(id) }
+
+    /** Guarda un respaldo JSON en el archivo elegido por el usuario. */
+    fun exportTo(uri: Uri, onResult: (Boolean) -> Unit) = viewModelScope.launch {
+        val ok = try {
+            val json = Backup.export(cuadricula)
+            withContext(Dispatchers.IO) {
+                cuadricula.contentResolver.openOutputStream(uri, "wt")?.use {
+                    it.write(json.toByteArray(Charsets.UTF_8))
+                } != null
+            }
+        } catch (e: Exception) {
+            false
+        }
+        onResult(ok)
+    }
+
+    /** Reemplaza todos los datos con los del respaldo elegido; si no es válido no cambia nada. */
+    fun importFrom(uri: Uri, onResult: (Boolean) -> Unit) = viewModelScope.launch {
+        val ok = try {
+            val text = withContext(Dispatchers.IO) {
+                cuadricula.contentResolver.openInputStream(uri)?.use {
+                    it.readBytes().toString(Charsets.UTF_8)
+                }
+            }
+            text != null && Backup.import(cuadricula, text)
+        } catch (e: Exception) {
+            false
+        }
+        if (ok) GridWidget.updateAll(cuadricula)
+        onResult(ok)
+    }
 }

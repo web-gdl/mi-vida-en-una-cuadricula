@@ -11,7 +11,7 @@ En la página principal del repositorio, a la derecha, en **Releases → APK má
 3. Ejecuta en un dispositivo o emulador con Android 8.0+ (API 26).
 4. Pruebas de la lógica de semanas: `./gradlew test`.
 
-## Qué hace (v1.0)
+## Qué hace
 - **Onboarding:** fecha de nacimiento y esperanza de vida editable (30–120 años, 80 por defecto).
 - **Cuadrícula:** vividas en verde, semana actual pulsante, futuras en gris, línea "Hoy", etiquetas de edad cada 10 años. Botón *Ampliar* para tocar celdas con precisión.
 - **Registro semanal:** al tocar una semana: estado de ánimo (1–5), una nota y marca de *memorable* (ámbar). Flechas para moverse entre semanas.
@@ -19,7 +19,7 @@ En la página principal del repositorio, a la derecha, en **Releases → APK má
 - **Tiempo con personas** (dentro de Cifras): agrega a alguien con los días al año que lo ves y los años que calculas que les quedan; la app muestra los días que te quedan juntos.
 - **Cifras:** semanas vividas y restantes, cuánto pesa un año hoy (100 / edad), semanas como pasos (120 por minuto) y calculadora de "cuántas veces te quedan".
 - **Widget de inicio:** la cuadrícula completa en la pantalla principal (mantén pulsado el inicio → Widgets → Mi vida en una cuadrícula). Se actualiza al guardar algo en la app y cada 6 horas; al tocarlo abre la app.
-- **Ajustes:** cambiar fecha de nacimiento y esperanza de vida, recordatorio cada lunes a las 9:00.
+- **Ajustes:** cambiar fecha de nacimiento y esperanza de vida, recordatorio cada lunes a las 9:00 y **respaldo**: exportar todo a un archivo JSON e importarlo después (reemplaza los datos actuales, solo si el archivo es válido).
 
 ## Regla de la semana
 fila = años cumplidos; columna = `min(51, díasDesdeCumpleaños / 7)`. Los 1–2 días sobrantes de cada año caen en la última columna, así cada fila coincide con un año de edad. Ver `domain/LifeCalc.kt`.
@@ -28,13 +28,14 @@ fila = años cumplidos; columna = `min(51, díasDesdeCumpleaños / 7)`. Los 1–
 ```
 app/src/main/java/com/webgdl/cuadricula/
   domain/LifeCalc.kt        cálculo de semanas (puro, con tests)
-  data/                     Room (WeekEntry) y DataStore (ajustes)
+  data/                     Room (semanas, última vez, personas), DataStore (ajustes), Backup
   reminder/Reminder.kt      WorkManager + notificación semanal
   ui/                       tema, LifeGrid (Canvas), pantallas
+  widget/GridWidget.kt      widget de inicio
 ```
 
-## Pendiente (versiones siguientes)
-Capas por categoría (trabajo/sueño), exportar/importar, etiquetas.
+## Ideas para más adelante
+Capas por categoría (trabajo / sueño, como en el video) y etiquetas por semana. Para publicar en Play Store haría falta además un APK firmado de release con una llave propia.
 
-## Nota
-Esta versión se escribió sin poder compilar en el entorno de desarrollo (sin Android SDK). Si Gradle marca algún error al sincronizar, es lo primero que hay que revisar.
+## Compilación
+GitHub Actions compila en cada push a `main` (`.github/workflows/build-apk.yml`): corre las pruebas, genera el APK de depuración y lo publica en el release `latest`.

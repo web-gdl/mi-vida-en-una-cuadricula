@@ -2,6 +2,7 @@ package com.webgdl.cuadricula.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
@@ -19,6 +21,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,6 +49,21 @@ fun SettingsScreen(vm: MainViewModel, ui: UiState, birth: LocalDate) {
 
     // Si el valor guardado cambia desde fuera, reflejarlo en el slider.
     LaunchedEffect(ui.settings.lifeExpectancy) { lifeSlider = ui.settings.lifeExpectancy.toFloat() }
+
+    var backupStatus by remember { mutableStateOf<String?>(null) }
+    var pendingImport by remember { mutableStateOf<Uri?>(null) }
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            vm.exportTo(uri) { ok ->
+                backupStatus = if (ok) "Respaldo guardado." else "No se pudo guardar el respaldo."
+            }
+        }
+    }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> if (uri != null) pendingImport = uri }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -105,6 +123,36 @@ fun SettingsScreen(vm: MainViewModel, ui: UiState, birth: LocalDate) {
             )
         }
 
+        InfoCard("Respaldo de tus datos") {
+            Text(
+                "Guarda todo en un archivo para no perderlo si cambias de teléfono o reinstalas la app.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Palette.Muted,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            Row(
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedButton(
+                    onClick = { exportLauncher.launch("mi-vida-en-una-cuadricula.json") },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Exportar") }
+                OutlinedButton(
+                    onClick = { importLauncher.launch(arrayOf("*/*")) },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Importar") }
+            }
+            backupStatus?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Palette.Mint,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
+
         InfoCard("Recordatorio semanal") {
             Row(
                 Modifier.fillMaxWidth().padding(top = 4.dp),
@@ -122,6 +170,25 @@ fun SettingsScreen(vm: MainViewModel, ui: UiState, birth: LocalDate) {
                 )
             }
         }
+    }
+
+    pendingImport?.let { uri ->
+        AlertDialog(
+            onDismissRequest = { pendingImport = null },
+            title = { Text("¿Reemplazar tus datos?") },
+            text = {
+                Text("Se borrarán tus notas, momentos y personas actuales y se cargará el respaldo.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingImport = null
+                    vm.importFrom(uri) { ok ->
+                        backupStatus = if (ok) "Respaldo cargado." else "El archivo no es un respaldo válido; no se cambió nada."
+                    }
+                }) { Text("Reemplazar") }
+            },
+            dismissButton = { TextButton(onClick = { pendingImport = null }) { Text("Cancelar") } },
+        )
     }
 
     if (showPicker) {

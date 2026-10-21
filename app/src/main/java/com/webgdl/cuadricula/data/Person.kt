@@ -33,6 +33,12 @@ interface PersonDao {
 
     @Query("DELETE FROM people WHERE id = :id")
     suspend fun delete(id: Long)
+
+    @Insert
+    suspend fun insertAll(people: List<Person>)
+
+    @Query("DELETE FROM people")
+    suspend fun clear()
 }
 
 /** v2 -> v3: añade la tabla de personas sin tocar lo existente. */
