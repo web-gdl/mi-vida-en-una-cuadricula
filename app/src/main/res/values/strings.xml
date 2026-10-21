@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Mi vida en una cuadrícula</string>
+    <string name="widget_description">Tu vida en semanas, a la vista en la pantalla de inicio.</string>
+    <string name="widget_image_description">Cuadrícula de tu vida en semanas</string>
 </resources>

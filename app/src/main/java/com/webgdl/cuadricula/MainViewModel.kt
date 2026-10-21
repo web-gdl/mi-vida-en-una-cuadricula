@@ -8,6 +8,7 @@ import com.webgdl.cuadricula.data.Person
 import com.webgdl.cuadricula.data.UserSettings
 import com.webgdl.cuadricula.data.WeekEntry
 import com.webgdl.cuadricula.reminder.ReminderScheduler
+import com.webgdl.cuadricula.widget.GridWidget
 import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -46,28 +47,47 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
 
     fun saveProfile(birth: LocalDate, lifeExpectancy: Int) =
-        viewModelScope.launch { settingsRepo.saveProfile(birth, lifeExpectancy) }
+        viewModelScope.launch {
+            settingsRepo.saveProfile(birth, lifeExpectancy)
+            GridWidget.updateAll(cuadricula)
+        }
 
-    fun setBirth(birth: LocalDate) = viewModelScope.launch { settingsRepo.setBirth(birth) }
+    fun setBirth(birth: LocalDate) = viewModelScope.launch {
+        settingsRepo.setBirth(birth)
+        GridWidget.updateAll(cuadricula)
+    }
 
-    fun setLifeExpectancy(years: Int) = viewModelScope.launch { settingsRepo.setLifeExpectancy(years) }
+    fun setLifeExpectancy(years: Int) = viewModelScope.launch {
+        settingsRepo.setLifeExpectancy(years)
+        GridWidget.updateAll(cuadricula)
+    }
 
     fun setReminder(enabled: Boolean) = viewModelScope.launch {
         settingsRepo.setReminder(enabled)
         if (enabled) ReminderScheduler.schedule(cuadricula) else ReminderScheduler.cancel(cuadricula)
     }
 
-    fun saveEntry(entry: WeekEntry) = viewModelScope.launch { dao.upsert(entry) }
+    fun saveEntry(entry: WeekEntry) = viewModelScope.launch {
+        dao.upsert(entry)
+        GridWidget.updateAll(cuadricula)
+    }
 
-    fun deleteEntry(weekIndex: Int) = viewModelScope.launch { dao.delete(weekIndex) }
+    fun deleteEntry(weekIndex: Int) = viewModelScope.launch {
+        dao.delete(weekIndex)
+        GridWidget.updateAll(cuadricula)
+    }
 
     fun addLastTime(title: String, date: LocalDate) = viewModelScope.launch {
         lastTimeDao.insert(
             LastTime(title = title.trim(), epochDay = date.toEpochDay(), createdAt = System.currentTimeMillis())
         )
+        GridWidget.updateAll(cuadricula)
     }
 
-    fun deleteLastTime(id: Long) = viewModelScope.launch { lastTimeDao.delete(id) }
+    fun deleteLastTime(id: Long) = viewModelScope.launch {
+        lastTimeDao.delete(id)
+        GridWidget.updateAll(cuadricula)
+    }
 
     fun addPerson(name: String, daysPerYear: Int, yearsLeft: Int) = viewModelScope.launch {
         personDao.insert(

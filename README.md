@@ -15,6 +15,7 @@ App nativa para Android (Kotlin + Jetpack Compose) basada en el video "Vida en s
 - **La última vez:** pestaña para anotar momentos que ya ocurrieron por última vez ("alguien te cargó en brazos"); se marcan en magenta en la cuadrícula y aparecen en el detalle de su semana. Las semanas memorables ahora se ven en ámbar.
 - **Tiempo con personas** (dentro de Cifras): agrega a alguien con los días al año que lo ves y los años que calculas que les quedan; la app muestra los días que te quedan juntos.
 - **Cifras:** semanas vividas y restantes, cuánto pesa un año hoy (100 / edad), semanas como pasos (120 por minuto) y calculadora de "cuántas veces te quedan".
+- **Widget de inicio:** la cuadrícula completa en la pantalla principal (mantén pulsado el inicio → Widgets → Mi vida en una cuadrícula). Se actualiza al guardar algo en la app y cada 6 horas; al tocarlo abre la app.
 - **Ajustes:** cambiar fecha de nacimiento y esperanza de vida, recordatorio cada lunes a las 9:00.
 
 ## Regla de la semana
@@ -30,7 +31,7 @@ app/src/main/java/com/webgdl/cuadricula/
 ```
 
 ## Pendiente (versiones siguientes)
-Capas por categoría (trabajo/sueño), widget de inicio, exportar/importar, etiquetas.
+Capas por categoría (trabajo/sueño), exportar/importar, etiquetas.
 
 ## Nota
 Esta versión se escribió sin poder compilar en el entorno de desarrollo (sin Android SDK). Si Gradle marca algún error al sincronizar, es lo primero que hay que revisar.
