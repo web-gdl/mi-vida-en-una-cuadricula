@@ -2,6 +2,9 @@
 
 App nativa para Android (Kotlin + Jetpack Compose) basada en el video "Vida en semanas": 80 años × 52 semanas = 4 160 cuadros, una fila por año, un cuadro por semana.
 
+## Descargar el APK
+En la página principal del repositorio, a la derecha, en **Releases → APK más reciente**, descarga `MiVidaEnUnaCuadricula.apk`. Se actualiza solo con cada cambio en `main`.
+
 ## Cómo abrirla
 1. Android Studio (Ladybug 2024.2 o más nuevo) → *Open* → carpeta `MiVidaEnUnaCuadricula`.
 2. Espera a que Gradle sincronice (genera el wrapper y descarga dependencias).
