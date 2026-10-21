@@ -27,24 +27,67 @@ jobs:
       - name: Pruebas unitarias
         run: gradle testDebugUnitTest --stacktrace
 
-      - name: Compilar APK (debug)
-        run: gradle assembleDebug --stacktrace
+      - name: Compilar APK release (R8 + recursos reducidos)
+        run: gradle assembleRelease --stacktrace
+
+      - name: Tamaño del APK
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk MiVidaEnUnaCuadricula.apk
+          ls -l MiVidaEnUnaCuadricula.apk
+          echo "APK release: $(du -h MiVidaEnUnaCuadricula.apk | cut -f1)" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: mi-vida-en-una-cuadricula-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: apk
+          path: MiVidaEnUnaCuadricula.apk
           if-no-files-found: error
 
+  smoke-test:
+    # Instala el APK release en un emulador y comprueba que la app arranca sin cerrarse
+    # (detecta problemas de R8, de Room o de inicio que la compilación no ve).
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk
+
+      - name: Habilitar KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: default
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash .github/scripts/smoke-test.sh MiVidaEnUnaCuadricula.apk
+
+  publish:
+    needs: smoke-test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk
+
       - name: Publicar APK en Releases
-        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk MiVidaEnUnaCuadricula.apk
+          SIZE=$(du -h MiVidaEnUnaCuadricula.apk | cut -f1)
           gh release delete latest --yes --cleanup-tag || true
           gh release create latest MiVidaEnUnaCuadricula.apk \
             --title "APK más reciente" \
-            --notes "APK de depuración compilado desde el commit ${GITHUB_SHA::7}. Descárgalo e instálalo en Android 8.0 o superior (permite instalar apps de origen desconocido)." \
+            --notes "Versión release optimizada (${SIZE}), compilada desde el commit ${GITHUB_SHA::7} y probada en un emulador Android 11. Instálala en Android 8.0 o superior (permite instalar apps de origen desconocido). Dominio público (The Unlicense)." \
             --target "$GITHUB_SHA" \
             --latest

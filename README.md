@@ -4,7 +4,11 @@
 
 **[⬇️ Descargar MiVidaEnUnaCuadricula.apk](https://github.com/web-gdl/mi-vida-en-una-cuadricula/releases/download/latest/MiVidaEnUnaCuadricula.apk)** · Android 8.0 o superior · [página del release](https://github.com/web-gdl/mi-vida-en-una-cuadricula/releases/tag/latest)
 
-Al abrirlo, Android pedirá permitir la instalación de apps de origen desconocido. El APK se actualiza solo con cada cambio en `main`.
+Al abrirlo, Android pedirá permitir la instalación de apps de origen desconocido. El APK se actualiza solo con cada cambio en `main`, y solo se publica si pasa una prueba de arranque en un emulador.
+
+> **Si instalaste una versión anterior a la 2.0:** exporta un respaldo (Ajustes → Respaldo → Exportar), desinstala la app, instala la nueva e importa el respaldo. Las versiones anteriores se firmaban con una llave distinta en cada compilación; desde la 2.0 la llave es fija y las siguientes actualizaciones se instalan encima sin perder nada.
+
+**Software libre de dominio público** ([The Unlicense](LICENSE)): úsalo, cópialo, modifícalo o véndelo sin pedir permiso ni dar crédito.
 
 App nativa para Android (Kotlin + Jetpack Compose) basada en el video "Vida en semanas": 80 años × 52 semanas = 4 160 cuadros, una fila por año, un cuadro por semana.
 
@@ -13,6 +17,7 @@ App nativa para Android (Kotlin + Jetpack Compose) basada en el video "Vida en s
 2. Espera a que Gradle sincronice (genera el wrapper y descarga dependencias).
 3. Ejecuta en un dispositivo o emulador con Android 8.0+ (API 26).
 4. Pruebas de la lógica de semanas: `./gradlew test`.
+5. APK optimizado: `./gradlew assembleRelease` (queda en `app/build/outputs/apk/release/`).
 
 ## Qué hace
 - **Onboarding:** fecha de nacimiento y esperanza de vida editable (30–120 años, 80 por defecto).
@@ -33,8 +38,8 @@ fila = años cumplidos; columna = `min(51, díasDesdeCumpleaños / 7)`. Los 1–
 ```
 app/src/main/java/com/webgdl/cuadricula/
   domain/LifeCalc.kt        cálculo de semanas (puro, con tests)
-  data/                     Room (semanas, última vez, personas), DataStore (ajustes), Backup
-  reminder/Reminder.kt      WorkManager + notificación semanal
+  data/                     Room (semanas, última vez, personas, capas), SharedPreferences (ajustes), Backup
+  reminder/Reminder.kt      AlarmManager + notificación semanal (y reprogramación al reiniciar)
   ui/                       tema, LifeGrid (Canvas), pantallas
   widget/GridWidget.kt      widget de inicio
 ```
@@ -42,5 +47,20 @@ app/src/main/java/com/webgdl/cuadricula/
 ## Ideas para más adelante
 Filtrar la cuadrícula por etiqueta y la gráfica de horas al día según la edad del video. Para publicar en Play Store haría falta además un APK firmado de release con una llave propia.
 
-## Compilación
-GitHub Actions compila en cada push a `main` (`.github/workflows/build-apk.yml`): corre las pruebas, genera el APK de depuración y lo publica en el release `latest`.
+## Compilación y tamaño del APK
+GitHub Actions (`.github/workflows/build-apk.yml`) en cada push a `main`:
+1. corre las pruebas unitarias y compila el APK **release**;
+2. lo instala en un emulador Android 11 y verifica que la app abre sin cerrarse (`.github/scripts/smoke-test.sh`);
+3. solo entonces lo publica en el release `latest`.
+
+Qué hace pequeño el APK:
+- **R8** (`isMinifyEnabled`) elimina y optimiza el código no usado y **`isShrinkResources`** quita los recursos sin usar.
+- Solo se incluyen recursos en español (`resourceConfigurations`), no las traducciones de las librerías a decenas de idiomas.
+- Sin DataStore ni WorkManager: los ajustes usan `SharedPreferences` y el recordatorio usa `AlarmManager`, ambos incluidos en Android.
+- Se excluyen metadatos de Kotlin y de dependencias que la app no necesita.
+
+### Firma
+La llave de firma (`keystore/release.jks`, contraseña `mividacuadricula`) está en el repositorio a propósito: el proyecto es de dominio público y así cualquiera puede compilar una versión que se instale encima de la oficial. Si algún día se publica en Play Store, conviene crear una llave privada y guardarla en los *secrets* de GitHub.
+
+## Licencia
+[The Unlicense](LICENSE): dominio público.

@@ -1,16 +1,12 @@
 package com.webgdl.cuadricula.data
 
 import android.content.Context
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.longPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import android.content.SharedPreferences
 import java.time.LocalDate
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-
-private val Context.dataStore by preferencesDataStore(name = "settings")
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.conflate
 
 const val DEFAULT_LIFE_EXPECTANCY = 80
 const val MIN_LIFE_EXPECTANCY = 30
@@ -26,46 +22,62 @@ data class UserSettings(
     val birthDate: LocalDate? get() = birthEpochDay?.let { LocalDate.ofEpochDay(it) }
 }
 
-class SettingsRepository(private val context: Context) {
-    private object Keys {
-        val BIRTH = longPreferencesKey("birth_epoch_day")
-        val LIFE = intPreferencesKey("life_expectancy")
-        val REMINDER = booleanPreferencesKey("reminder_enabled")
-        val SHOW_LAYERS = booleanPreferencesKey("show_layers")
+/**
+ * Ajustes guardados con SharedPreferences (incluido en Android): evita sumar DataStore y
+ * protobuf al APK. Expone un Flow que emite cada vez que cambia un valor.
+ */
+class SettingsRepository(context: Context) {
+    private val prefs: SharedPreferences = prefsOf(context)
+
+    val settings: Flow<UserSettings> = callbackFlow {
+        trySend(read())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> trySend(read()) }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.conflate()
+
+    private fun read() = UserSettings(
+        birthEpochDay = if (prefs.contains(KEY_BIRTH)) prefs.getLong(KEY_BIRTH, 0L) else null,
+        lifeExpectancy = prefs.getInt(KEY_LIFE, DEFAULT_LIFE_EXPECTANCY)
+            .coerceIn(MIN_LIFE_EXPECTANCY, MAX_LIFE_EXPECTANCY),
+        reminderEnabled = prefs.getBoolean(KEY_REMINDER, false),
+        showLayers = prefs.getBoolean(KEY_SHOW_LAYERS, true),
+    )
+
+    fun saveProfile(birth: LocalDate, lifeExpectancy: Int) {
+        prefs.edit()
+            .putLong(KEY_BIRTH, birth.toEpochDay())
+            .putInt(KEY_LIFE, lifeExpectancy.coerceIn(MIN_LIFE_EXPECTANCY, MAX_LIFE_EXPECTANCY))
+            .apply()
     }
 
-    val settings: Flow<UserSettings> = context.dataStore.data.map { p ->
-        UserSettings(
-            birthEpochDay = p[Keys.BIRTH],
-            lifeExpectancy = (p[Keys.LIFE] ?: DEFAULT_LIFE_EXPECTANCY)
-                .coerceIn(MIN_LIFE_EXPECTANCY, MAX_LIFE_EXPECTANCY),
-            reminderEnabled = p[Keys.REMINDER] ?: false,
-            showLayers = p[Keys.SHOW_LAYERS] ?: true,
-        )
+    fun setBirth(birth: LocalDate) {
+        prefs.edit().putLong(KEY_BIRTH, birth.toEpochDay()).apply()
     }
 
-    suspend fun saveProfile(birth: LocalDate, lifeExpectancy: Int) {
-        context.dataStore.edit {
-            it[Keys.BIRTH] = birth.toEpochDay()
-            it[Keys.LIFE] = lifeExpectancy.coerceIn(MIN_LIFE_EXPECTANCY, MAX_LIFE_EXPECTANCY)
-        }
+    fun setLifeExpectancy(years: Int) {
+        prefs.edit().putInt(KEY_LIFE, years.coerceIn(MIN_LIFE_EXPECTANCY, MAX_LIFE_EXPECTANCY)).apply()
     }
 
-    suspend fun setBirth(birth: LocalDate) {
-        context.dataStore.edit { it[Keys.BIRTH] = birth.toEpochDay() }
+    fun setReminder(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_REMINDER, enabled).apply()
     }
 
-    suspend fun setLifeExpectancy(years: Int) {
-        context.dataStore.edit {
-            it[Keys.LIFE] = years.coerceIn(MIN_LIFE_EXPECTANCY, MAX_LIFE_EXPECTANCY)
-        }
+    fun setShowLayers(show: Boolean) {
+        prefs.edit().putBoolean(KEY_SHOW_LAYERS, show).apply()
     }
 
-    suspend fun setReminder(enabled: Boolean) {
-        context.dataStore.edit { it[Keys.REMINDER] = enabled }
-    }
+    companion object {
+        private const val NAME = "settings"
+        private const val KEY_BIRTH = "birth_epoch_day"
+        private const val KEY_LIFE = "life_expectancy"
+        private const val KEY_REMINDER = "reminder_enabled"
+        private const val KEY_SHOW_LAYERS = "show_layers"
 
-    suspend fun setShowLayers(show: Boolean) {
-        context.dataStore.edit { it[Keys.SHOW_LAYERS] = show }
+        private fun prefsOf(context: Context): SharedPreferences =
+            context.applicationContext.getSharedPreferences(NAME, Context.MODE_PRIVATE)
+
+        /** Lectura directa para receptores que corren sin la app abierta (p. ej. al reiniciar). */
+        fun reminderEnabled(context: Context): Boolean = prefsOf(context).getBoolean(KEY_REMINDER, false)
     }
 }

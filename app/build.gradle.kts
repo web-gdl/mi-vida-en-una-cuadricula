@@ -13,13 +13,33 @@ android {
         applicationId = "com.webgdl.cuadricula"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "2.0"
+        // Solo español: elimina las traducciones de las librerías a decenas de idiomas.
+        resourceConfigurations += listOf("es")
+    }
+
+    // Llave de firma fija y pública (el proyecto es de dominio público). Permite instalar
+    // cada versión nueva encima de la anterior sin perder datos.
+    signingConfigs {
+        create("release") {
+            storeFile = rootProject.file("keystore/release.jks")
+            storePassword = "mividacuadricula"
+            keyAlias = "cuadricula"
+            keyPassword = "mividacuadricula"
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8: elimina código y recursos no usados, y ofusca/optimiza el resto.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -32,14 +52,31 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = false
+    }
+
+    packaging {
+        resources {
+            excludes += setOf(
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "/META-INF/*.version",
+                "/META-INF/*.kotlin_module",
+                "DebugProbesKt.bin",
+                "kotlin-tooling-metadata.json",
+            )
+        }
+    }
+
+    // No incrustar el bloque de metadatos de dependencias en el APK.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 }
 
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.10.01")
     implementation(composeBom)
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
 
@@ -51,9 +88,6 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
-
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
-    implementation("androidx.work:work-runtime-ktx:2.9.1")
 
     testImplementation("junit:junit:4.13.2")
 }

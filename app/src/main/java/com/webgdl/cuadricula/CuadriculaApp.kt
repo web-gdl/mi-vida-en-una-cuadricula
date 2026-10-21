@@ -7,6 +7,7 @@ import com.webgdl.cuadricula.data.MIGRATION_1_2
 import com.webgdl.cuadricula.data.MIGRATION_2_3
 import com.webgdl.cuadricula.data.MIGRATION_3_4
 import com.webgdl.cuadricula.data.SettingsRepository
+import com.webgdl.cuadricula.reminder.ReminderScheduler
 
 class CuadriculaApp : Application() {
     val database: AppDatabase by lazy {
@@ -15,4 +16,10 @@ class CuadriculaApp : Application() {
             .build()
     }
     val settingsRepository: SettingsRepository by lazy { SettingsRepository(this) }
+
+    override fun onCreate() {
+        super.onCreate()
+        // Asegura que el aviso semanal siga programado (p. ej. tras una actualización).
+        if (SettingsRepository.reminderEnabled(this)) ReminderScheduler.schedule(this)
+    }
 }
