@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
+import com.webgdl.cuadricula.MainViewModel
 import com.webgdl.cuadricula.UiState
 import com.webgdl.cuadricula.domain.LifeCalc
 import java.text.NumberFormat
@@ -32,7 +33,7 @@ private val nf: NumberFormat = NumberFormat.getIntegerInstance(Locale.forLanguag
 private fun Int.fmt(): String = nf.format(this)
 
 @Composable
-fun StatsScreen(ui: UiState, birth: LocalDate, today: LocalDate) {
+fun StatsScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDate) {
     val stats = remember(birth, today, ui.settings.lifeExpectancy) {
         LifeCalc.stats(birth, today, ui.settings.lifeExpectancy)
     }
@@ -124,6 +125,8 @@ fun StatsScreen(ui: UiState, birth: LocalDate, today: LocalDate) {
                 modifier = Modifier.padding(top = 8.dp),
             )
         }
+
+        PeopleSection(vm, ui)
 
         InfoCard("Tu registro") {
             Text(

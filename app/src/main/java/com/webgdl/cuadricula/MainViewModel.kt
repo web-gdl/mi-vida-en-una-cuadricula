@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.webgdl.cuadricula.data.LastTime
+import com.webgdl.cuadricula.data.Person
 import com.webgdl.cuadricula.data.UserSettings
 import com.webgdl.cuadricula.data.WeekEntry
 import com.webgdl.cuadricula.reminder.ReminderScheduler
@@ -19,6 +20,7 @@ data class UiState(
     val settings: UserSettings = UserSettings(),
     val entries: Map<Int, WeekEntry> = emptyMap(),
     val lastTimes: List<LastTime> = emptyList(),
+    val people: List<Person> = emptyList(),
 )
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -26,17 +28,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val settingsRepo = cuadricula.settingsRepository
     private val dao = cuadricula.database.weekDao()
     private val lastTimeDao = cuadricula.database.lastTimeDao()
+    private val personDao = cuadricula.database.personDao()
 
     val state: StateFlow<UiState> = combine(
         settingsRepo.settings,
         dao.observeAll(),
         lastTimeDao.observeAll(),
-    ) { s, list, lastTimes ->
+        personDao.observeAll(),
+    ) { s, list, lastTimes, people ->
         UiState(
             loaded = true,
             settings = s,
             entries = list.associateBy { it.weekIndex },
             lastTimes = lastTimes,
+            people = people,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
 
@@ -63,4 +68,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun deleteLastTime(id: Long) = viewModelScope.launch { lastTimeDao.delete(id) }
+
+    fun addPerson(name: String, daysPerYear: Int, yearsLeft: Int) = viewModelScope.launch {
+        personDao.insert(
+            Person(
+                name = name.trim(),
+                daysPerYear = daysPerYear,
+                yearsLeft = yearsLeft,
+                createdAt = System.currentTimeMillis(),
+            )
+        )
+    }
+
+    fun deletePerson(id: Long) = viewModelScope.launch { personDao.delete(id) }
 }

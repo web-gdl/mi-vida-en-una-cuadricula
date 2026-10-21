@@ -73,7 +73,7 @@ private fun MainScaffold(vm: MainViewModel, ui: com.webgdl.cuadricula.UiState, b
             when (Tab.entries[tabIndex]) {
                 Tab.Grid -> GridScreen(vm, ui, birth, today)
                 Tab.LastTime -> LastTimeScreen(vm, ui, birth, today)
-                Tab.Stats -> StatsScreen(ui, birth, today)
+                Tab.Stats -> StatsScreen(vm, ui, birth, today)
                 Tab.Settings -> SettingsScreen(vm, ui, birth)
             }
         }
