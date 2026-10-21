@@ -43,4 +43,26 @@ class LifeCalcTest {
         assertEquals(10f, LifeCalc.stats(birth, birth.plusYears(10), 80).yearWeightPercent, 0.01f)
         assertEquals(2f, LifeCalc.stats(birth, birth.plusYears(50), 80).yearWeightPercent, 0.01f)
     }
+
+    @Test fun remainingWeeksInsideRange() =
+        assertEquals(65 * 52 - 1582, LifeCalc.remainingWeeksInRange(1582, 25, 65))
+
+    @Test fun remainingWeeksBeforeRange() =
+        assertEquals((65 - 25) * 52, LifeCalc.remainingWeeksInRange(0, 25, 65))
+
+    @Test fun remainingWeeksAfterRange() =
+        assertEquals(0, LifeCalc.remainingWeeksInRange(4000, 25, 65))
+
+    @Test fun layerRowColorsFirstWins() {
+        val colors = layerRowColors(
+            10,
+            listOf(LayerRange(2, 5, 111), LayerRange(4, 8, 222)),
+        )
+        assertEquals(listOf(0, 0, 111, 111, 111, 222, 222, 222, 0, 0), colors.toList())
+    }
+
+    @Test fun tagsAreNormalized() {
+        assertEquals("trabajo, amor", normalizeTags(" Trabajo, amor ,TRABAJO,, "))
+        assertEquals(emptyList<String>(), parseTags(" , ,"))
+    }
 }

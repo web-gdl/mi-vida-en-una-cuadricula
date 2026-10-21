@@ -34,6 +34,7 @@ import com.webgdl.cuadricula.data.LastTime
 import com.webgdl.cuadricula.data.WeekEntry
 import com.webgdl.cuadricula.domain.LifeCalc
 import com.webgdl.cuadricula.domain.WEEKS_PER_ROW
+import com.webgdl.cuadricula.domain.normalizeTags
 import java.time.LocalDate
 
 private val moodFaces = listOf("😞", "🙁", "😐", "🙂", "😄")
@@ -57,13 +58,24 @@ fun WeekSheet(
     var note by remember(weekIndex) { mutableStateOf(existing?.note ?: "") }
     var mood by remember(weekIndex) { mutableIntStateOf(existing?.mood ?: 0) }
     var memorable by remember(weekIndex) { mutableStateOf(existing?.isMemorable ?: false) }
+    var tags by remember(weekIndex) { mutableStateOf(existing?.tags ?: "") }
 
     // Guarda lo escrito (o borra el registro si quedó vacío).
     fun persist() {
-        if (note.isBlank() && mood == 0 && !memorable) {
+        val cleanTags = normalizeTags(tags)
+        if (note.isBlank() && mood == 0 && !memorable && cleanTags.isEmpty()) {
             if (existing != null) onDelete(weekIndex)
         } else {
-            onSave(WeekEntry(weekIndex, note.trim(), mood, memorable, System.currentTimeMillis()))
+            onSave(
+                WeekEntry(
+                    weekIndex = weekIndex,
+                    note = note.trim(),
+                    mood = mood,
+                    isMemorable = memorable,
+                    updatedAt = System.currentTimeMillis(),
+                    tags = cleanTags,
+                )
+            )
         }
     }
 
@@ -148,6 +160,14 @@ fun WeekSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            OutlinedTextField(
+                value = tags,
+                onValueChange = { tags = it.take(80) },
+                label = { Text("Etiquetas (separadas por coma)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -169,6 +189,7 @@ fun WeekSheet(
                     onClick = {
                         note = ""
                         mood = 0
+                        tags = ""
                         memorable = false
                         if (existing != null) onDelete(weekIndex)
                     },

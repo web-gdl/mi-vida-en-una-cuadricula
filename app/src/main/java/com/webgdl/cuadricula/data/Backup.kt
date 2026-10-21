@@ -17,6 +17,7 @@ object Backup {
         val entries: List<WeekEntry>,
         val lastTimes: List<LastTime>,
         val people: List<Person>,
+        val layers: List<Layer>,
     )
 
     suspend fun export(app: CuadriculaApp): String {
@@ -36,6 +37,7 @@ object Backup {
                     .put("mood", it.mood)
                     .put("isMemorable", it.isMemorable)
                     .put("updatedAt", it.updatedAt)
+                    .put("tags", it.tags)
             )
         }
         root.put("entries", entries)
@@ -62,6 +64,19 @@ object Backup {
             )
         }
         root.put("people", people)
+
+        val layers = JSONArray()
+        db.layerDao().observeAll().first().forEach {
+            layers.put(
+                JSONObject()
+                    .put("name", it.name)
+                    .put("colorIndex", it.colorIndex)
+                    .put("fromAge", it.fromAge)
+                    .put("toAge", it.toAge)
+                    .put("createdAt", it.createdAt)
+            )
+        }
+        root.put("layers", layers)
         return root.toString(2)
     }
 
@@ -83,6 +98,8 @@ object Backup {
             db.lastTimeDao().insertAll(parsed.lastTimes)
             db.personDao().clear()
             db.personDao().insertAll(parsed.people)
+            db.layerDao().clear()
+            db.layerDao().insertAll(parsed.layers)
         }
         val birth = parsed.birthEpochDay
         if (birth != null) {
@@ -108,6 +125,7 @@ object Backup {
                     mood = o.optInt("mood", 0).coerceIn(0, 5),
                     isMemorable = o.optBoolean("isMemorable", false),
                     updatedAt = o.optLong("updatedAt", 0L),
+                    tags = o.optString("tags", ""),
                 )
             }
         }
@@ -132,12 +150,29 @@ object Backup {
                 )
             }
         }
+        // Los respaldos anteriores no traen capas: se interpretan como sin capas.
+        val layers = (root.optJSONArray("layers") ?: JSONArray()).let { arr ->
+            (0 until arr.length()).map { i ->
+                val o = arr.getJSONObject(i)
+                val from = o.getInt("fromAge").coerceIn(0, MAX_LIFE_EXPECTANCY)
+                val to = o.getInt("toAge").coerceIn(0, MAX_LIFE_EXPECTANCY)
+                require(from < to) { "rango de capa inválido" }
+                Layer(
+                    name = o.getString("name"),
+                    colorIndex = o.optInt("colorIndex", 0).coerceIn(0, com.webgdl.cuadricula.domain.LAYER_COLORS.size - 1),
+                    fromAge = from,
+                    toAge = to,
+                    createdAt = o.optLong("createdAt", 0L),
+                )
+            }
+        }
         return Parsed(
             birthEpochDay = if (root.has("birthEpochDay")) root.getLong("birthEpochDay") else null,
             lifeExpectancy = root.getInt("lifeExpectancy").coerceIn(MIN_LIFE_EXPECTANCY, MAX_LIFE_EXPECTANCY),
             entries = entries,
             lastTimes = lastTimes,
             people = people,
+            layers = layers,
         )
     }
 }

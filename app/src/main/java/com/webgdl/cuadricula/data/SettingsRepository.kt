@@ -21,6 +21,7 @@ data class UserSettings(
     val birthEpochDay: Long? = null,
     val lifeExpectancy: Int = DEFAULT_LIFE_EXPECTANCY,
     val reminderEnabled: Boolean = false,
+    val showLayers: Boolean = true,
 ) {
     val birthDate: LocalDate? get() = birthEpochDay?.let { LocalDate.ofEpochDay(it) }
 }
@@ -30,6 +31,7 @@ class SettingsRepository(private val context: Context) {
         val BIRTH = longPreferencesKey("birth_epoch_day")
         val LIFE = intPreferencesKey("life_expectancy")
         val REMINDER = booleanPreferencesKey("reminder_enabled")
+        val SHOW_LAYERS = booleanPreferencesKey("show_layers")
     }
 
     val settings: Flow<UserSettings> = context.dataStore.data.map { p ->
@@ -38,6 +40,7 @@ class SettingsRepository(private val context: Context) {
             lifeExpectancy = (p[Keys.LIFE] ?: DEFAULT_LIFE_EXPECTANCY)
                 .coerceIn(MIN_LIFE_EXPECTANCY, MAX_LIFE_EXPECTANCY),
             reminderEnabled = p[Keys.REMINDER] ?: false,
+            showLayers = p[Keys.SHOW_LAYERS] ?: true,
         )
     }
 
@@ -60,5 +63,9 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setReminder(enabled: Boolean) {
         context.dataStore.edit { it[Keys.REMINDER] = enabled }
+    }
+
+    suspend fun setShowLayers(show: Boolean) {
+        context.dataStore.edit { it[Keys.SHOW_LAYERS] = show }
     }
 }

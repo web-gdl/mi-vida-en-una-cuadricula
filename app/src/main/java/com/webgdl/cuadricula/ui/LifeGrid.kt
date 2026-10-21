@@ -45,6 +45,7 @@ fun LifeGrid(
     currentWeek: Int,
     entries: Map<Int, WeekEntry>,
     lastTimeWeeks: Set<Int>,
+    layerRowColors: IntArray?,
     zoomed: Boolean,
     verticalScroll: ScrollState,
     viewportHeightPx: Int,
@@ -130,6 +131,7 @@ fun LifeGrid(
 
             for (row in 0 until rows) {
                 val y = topPad + row * cell + inset
+                val layer = layerRowColors?.getOrNull(row) ?: 0
                 for (col in 0 until WEEKS_PER_ROW) {
                     val index = row * WEEKS_PER_ROW + col
                     val entry = entries[index]
@@ -137,6 +139,10 @@ fun LifeGrid(
                         index == currentWeek -> Palette.Mint.copy(alpha = pulse)
                         index in lastTimeWeeks -> Palette.Magenta
                         entry?.isMemorable == true -> Palette.Amber
+                        layer != 0 && entry == null && index < currentWeek ->
+                            Color(layer).copy(alpha = 0.75f)
+                        layer != 0 && entry == null && index > currentWeek ->
+                            Color(layer).copy(alpha = 0.40f)
                         index < currentWeek ->
                             if (entry != null) Palette.Mint else Palette.Mint.copy(alpha = 0.40f)
                         entry != null -> Palette.Mint.copy(alpha = 0.75f)

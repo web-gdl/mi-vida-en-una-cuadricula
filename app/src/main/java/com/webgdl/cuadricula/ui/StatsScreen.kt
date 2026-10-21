@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.webgdl.cuadricula.MainViewModel
 import com.webgdl.cuadricula.UiState
 import com.webgdl.cuadricula.domain.LifeCalc
+import com.webgdl.cuadricula.domain.parseTags
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.util.Locale
@@ -40,6 +41,16 @@ fun StatsScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDa
     var perYearText by rememberSaveable { mutableStateOf("12") }
     val perYear = perYearText.toIntOrNull() ?: 0
     val memorable = ui.entries.values.count { it.isMemorable }
+    val topTags = remember(ui.entries) {
+        ui.entries.values
+            .flatMap { parseTags(it.tags) }
+            .groupingBy { it }
+            .eachCount()
+            .entries
+            .sortedByDescending { it.value }
+            .take(8)
+            .map { it.key to it.value }
+    }
 
     Column(
         Modifier
@@ -126,6 +137,8 @@ fun StatsScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDa
             )
         }
 
+        LayersSection(vm, ui, stats.currentWeek)
+
         PeopleSection(vm, ui)
 
         InfoCard("Tu registro") {
@@ -133,6 +146,41 @@ fun StatsScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDa
                 "${ui.entries.size} semanas con registro · $memorable memorables",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Palette.Text,
+            )
+            if (topTags.isNotEmpty()) {
+                Text(
+                    "Etiquetas más usadas",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Palette.Muted,
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+                topTags.forEach { (tag, count) ->
+                    Text(
+                        "#$tag · $count ${if (count == 1) "semana" else "semanas"}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Palette.Mint,
+                    )
+                }
+            }
+        }
+
+        InfoCard("Séneca, hacia el año 49") {
+            Text(
+                "«No tenemos poco tiempo: perdemos mucho.»",
+                style = MaterialTheme.typography.titleMedium,
+                color = Palette.Text,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            Text(
+                "De la brevedad de la vida",
+                style = MaterialTheme.typography.bodySmall,
+                color = Palette.Muted,
+            )
+            Text(
+                "¿Con quién las vas a pasar?",
+                style = MaterialTheme.typography.titleLarge,
+                color = Palette.Mint,
+                modifier = Modifier.padding(top = 12.dp),
             )
         }
     }

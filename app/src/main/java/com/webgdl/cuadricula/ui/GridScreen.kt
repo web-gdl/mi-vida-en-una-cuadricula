@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
@@ -29,7 +30,10 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import com.webgdl.cuadricula.MainViewModel
 import com.webgdl.cuadricula.UiState
+import com.webgdl.cuadricula.domain.LAYER_COLORS
+import com.webgdl.cuadricula.domain.LayerRange
 import com.webgdl.cuadricula.domain.LifeCalc
+import com.webgdl.cuadricula.domain.layerRowColors
 import java.time.LocalDate
 
 @Composable
@@ -41,6 +45,19 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
             .map { LifeCalc.weekIndexOf(birth, LocalDate.ofEpochDay(it.epochDay)) }
             .filter { it >= 0 }
             .toSet()
+    }
+    val showLayers = ui.settings.showLayers && ui.layers.isNotEmpty()
+    val layerColors = remember(ui.layers, rows, showLayers) {
+        if (showLayers) {
+            layerRowColors(
+                rows,
+                ui.layers.map {
+                    LayerRange(it.fromAge, it.toAge, LAYER_COLORS[it.colorIndex.coerceIn(0, LAYER_COLORS.size - 1)])
+                },
+            )
+        } else {
+            null
+        }
     }
     var zoomed by rememberSaveable { mutableStateOf(false) }
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -60,17 +77,43 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
                     style = MaterialTheme.typography.bodySmall,
                     color = Palette.Muted,
                 )
-                FilterChip(
-                    selected = zoomed,
-                    onClick = { zoomed = !zoomed },
-                    label = { Text("Ampliar") },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Palette.SurfaceHigh,
-                        selectedLabelColor = Palette.Mint,
-                    ),
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (ui.layers.isNotEmpty()) {
+                        FilterChip(
+                            selected = ui.settings.showLayers,
+                            onClick = { vm.setShowLayers(!ui.settings.showLayers) },
+                            label = { Text("Capas") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Palette.SurfaceHigh,
+                                selectedLabelColor = Palette.Mint,
+                            ),
+                        )
+                    }
+                    FilterChip(
+                        selected = zoomed,
+                        onClick = { zoomed = !zoomed },
+                        label = { Text("Ampliar") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Palette.SurfaceHigh,
+                            selectedLabelColor = Palette.Mint,
+                        ),
+                    )
+                }
             }
             Legend()
+            if (showLayers) {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    ui.layers.forEach {
+                        LegendItem(
+                            Color(LAYER_COLORS[it.colorIndex.coerceIn(0, LAYER_COLORS.size - 1)]).copy(alpha = 0.75f),
+                            "${it.name} ${it.fromAge}–${it.toAge}",
+                        )
+                    }
+                }
+            }
         }
 
         Column(
@@ -84,6 +127,7 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
                 currentWeek = stats.currentWeek,
                 entries = ui.entries,
                 lastTimeWeeks = lastTimeWeeks,
+                layerRowColors = layerColors,
                 zoomed = zoomed,
                 verticalScroll = scroll,
                 viewportHeightPx = viewportPx,

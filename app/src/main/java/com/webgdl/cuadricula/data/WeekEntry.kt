@@ -18,6 +18,8 @@ data class WeekEntry(
     val mood: Int = 0,
     val isMemorable: Boolean = false,
     val updatedAt: Long = 0L,
+    /** Etiquetas separadas por coma, en minúsculas (ver domain/Tags.kt). */
+    val tags: String = "",
 )
 
 @Dao
@@ -38,9 +40,10 @@ interface WeekDao {
     suspend fun clear()
 }
 
-@Database(entities = [WeekEntry::class, LastTime::class, Person::class], version = 3, exportSchema = false)
+@Database(entities = [WeekEntry::class, LastTime::class, Person::class, Layer::class], version = 4, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun weekDao(): WeekDao
     abstract fun lastTimeDao(): LastTimeDao
     abstract fun personDao(): PersonDao
+    abstract fun layerDao(): LayerDao
 }

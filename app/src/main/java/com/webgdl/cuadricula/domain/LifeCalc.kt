@@ -62,6 +62,10 @@ object LifeCalc {
         }
     }
 
+    /** Semanas que quedan de una etapa entre [fromAge] y [toAge] años, contando desde [currentWeek]. */
+    fun remainingWeeksInRange(currentWeek: Int, fromAge: Int, toAge: Int): Int =
+        max(0, toAge * WEEKS_PER_ROW - max(currentWeek, fromAge * WEEKS_PER_ROW))
+
     fun stats(birth: LocalDate, today: LocalDate, lifeExpectancyYears: Int): LifeStats {
         val total = lifeExpectancyYears * WEEKS_PER_ROW
         val current = max(0, weekIndexOf(birth, today))

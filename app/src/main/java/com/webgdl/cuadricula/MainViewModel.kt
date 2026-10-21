@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.webgdl.cuadricula.data.Backup
 import com.webgdl.cuadricula.data.LastTime
+import com.webgdl.cuadricula.data.Layer
 import com.webgdl.cuadricula.data.Person
 import com.webgdl.cuadricula.data.UserSettings
 import com.webgdl.cuadricula.data.WeekEntry
@@ -26,6 +27,7 @@ data class UiState(
     val entries: Map<Int, WeekEntry> = emptyMap(),
     val lastTimes: List<LastTime> = emptyList(),
     val people: List<Person> = emptyList(),
+    val layers: List<Layer> = emptyList(),
 )
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -34,19 +36,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val dao = cuadricula.database.weekDao()
     private val lastTimeDao = cuadricula.database.lastTimeDao()
     private val personDao = cuadricula.database.personDao()
+    private val layerDao = cuadricula.database.layerDao()
 
     val state: StateFlow<UiState> = combine(
         settingsRepo.settings,
         dao.observeAll(),
         lastTimeDao.observeAll(),
         personDao.observeAll(),
-    ) { s, list, lastTimes, people ->
+        layerDao.observeAll(),
+    ) { s, list, lastTimes, people, layers ->
         UiState(
             loaded = true,
             settings = s,
             entries = list.associateBy { it.weekIndex },
             lastTimes = lastTimes,
             people = people,
+            layers = layers,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
 
@@ -105,6 +110,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun deletePerson(id: Long) = viewModelScope.launch { personDao.delete(id) }
+
+    fun addLayer(name: String, colorIndex: Int, fromAge: Int, toAge: Int) = viewModelScope.launch {
+        layerDao.insert(
+            Layer(
+                name = name.trim(),
+                colorIndex = colorIndex,
+                fromAge = fromAge,
+                toAge = toAge,
+                createdAt = System.currentTimeMillis(),
+            )
+        )
+        GridWidget.updateAll(cuadricula)
+    }
+
+    fun deleteLayer(id: Long) = viewModelScope.launch {
+        layerDao.delete(id)
+        GridWidget.updateAll(cuadricula)
+    }
+
+    fun setShowLayers(show: Boolean) = viewModelScope.launch {
+        settingsRepo.setShowLayers(show)
+        GridWidget.updateAll(cuadricula)
+    }
 
     /** Guarda un respaldo JSON en el archivo elegido por el usuario. */
     fun exportTo(uri: Uri, onResult: (Boolean) -> Unit) = viewModelScope.launch {
