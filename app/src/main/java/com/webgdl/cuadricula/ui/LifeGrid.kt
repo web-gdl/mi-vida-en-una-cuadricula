@@ -47,6 +47,7 @@ fun LifeGrid(
     lastTimeWeeks: Set<Int>,
     zoomed: Boolean,
     verticalScroll: ScrollState,
+    viewportHeightPx: Int,
     onWeekClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -86,9 +87,18 @@ fun LifeGrid(
         val heightPx = topPad + cell * rows + with(density) { 8.dp.toPx() }
 
         // Al abrir, llevar la vista cerca de la fila actual.
-        LaunchedEffect(cell, rows) {
-            val target = ((currentRow - 3) * cell).toInt().coerceAtLeast(0)
-            verticalScroll.scrollTo(target)
+        // Si la fila actual ya se ve desde arriba, no se desplaza (así se ven los años 0..10);
+        // si queda fuera de pantalla, se centra en la pantalla.
+        LaunchedEffect(cell, rows, viewportHeightPx > 0) {
+            if (viewportHeightPx > 0) {
+                val rowBottom = topPad + (currentRow + 2) * cell
+                val target = if (rowBottom <= viewportHeightPx) {
+                    0
+                } else {
+                    (topPad + currentRow * cell - viewportHeightPx / 2f).toInt().coerceAtLeast(0)
+                }
+                verticalScroll.scrollTo(target)
+            }
         }
 
         val canvasModifier = Modifier

@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -24,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import com.webgdl.cuadricula.MainViewModel
 import com.webgdl.cuadricula.UiState
@@ -43,6 +45,7 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
     var zoomed by rememberSaveable { mutableStateOf(false) }
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
     val scroll = rememberScrollState()
+    var viewportPx by remember { mutableIntStateOf(0) }
 
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -70,7 +73,12 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
             Legend()
         }
 
-        Column(Modifier.weight(1f).verticalScroll(scroll)) {
+        Column(
+            Modifier
+                .weight(1f)
+                .onSizeChanged { viewportPx = it.height }
+                .verticalScroll(scroll)
+        ) {
             LifeGrid(
                 rows = rows,
                 currentWeek = stats.currentWeek,
@@ -78,6 +86,7 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
                 lastTimeWeeks = lastTimeWeeks,
                 zoomed = zoomed,
                 verticalScroll = scroll,
+                viewportHeightPx = viewportPx,
                 onWeekClick = { selected = it },
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
