@@ -11,7 +11,7 @@ App nativa para Android (Kotlin + Jetpack Compose) basada en el video "Vida en s
 ## Qué hace (v1.0)
 - **Onboarding:** fecha de nacimiento y esperanza de vida editable (30–120 años, 80 por defecto).
 - **Cuadrícula:** vividas en verde, semana actual pulsante, futuras en gris, línea "Hoy", etiquetas de edad cada 10 años. Botón *Ampliar* para tocar celdas con precisión.
-- **Registro semanal:** al tocar una semana: estado de ánimo (1–5), una nota y marca de *memorable* (magenta). Flechas para moverse entre semanas.
+- **Registro semanal:** al tocar una semana: estado de ánimo (1–5), una nota y marca de *memorable* (ámbar). Flechas para moverse entre semanas.
 - **La última vez:** pestaña para anotar momentos que ya ocurrieron por última vez ("alguien te cargó en brazos"); se marcan en magenta en la cuadrícula y aparecen en el detalle de su semana. Las semanas memorables ahora se ven en ámbar.
 - **Cifras:** semanas vividas y restantes, cuánto pesa un año hoy (100 / edad), semanas como pasos (120 por minuto) y calculadora de "cuántas veces te quedan".
 - **Ajustes:** cambiar fecha de nacimiento y esperanza de vida, recordatorio cada lunes a las 9:00.
