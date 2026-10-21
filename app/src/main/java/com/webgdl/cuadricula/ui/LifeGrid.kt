@@ -36,7 +36,7 @@ import com.webgdl.cuadricula.domain.WEEKS_PER_ROW
 
 /**
  * Cuadrícula de vida: una fila por año, 52 celdas por fila (una por semana).
- * Verde = vivida, verde brillante = con nota, magenta = memorable, gris = futura,
+ * Verde = vivida, verde brillante = con nota, ámbar = memorable, magenta = última vez, gris = futura,
  * celda pulsante = semana actual, línea blanca = "Hoy".
  */
 @Composable
@@ -44,6 +44,7 @@ fun LifeGrid(
     rows: Int,
     currentWeek: Int,
     entries: Map<Int, WeekEntry>,
+    lastTimeWeeks: Set<Int>,
     zoomed: Boolean,
     verticalScroll: ScrollState,
     onWeekClick: (Int) -> Unit,
@@ -124,7 +125,8 @@ fun LifeGrid(
                     val entry = entries[index]
                     val color: Color = when {
                         index == currentWeek -> Palette.Mint.copy(alpha = pulse)
-                        entry?.isMemorable == true -> Palette.Magenta
+                        index in lastTimeWeeks -> Palette.Magenta
+                        entry?.isMemorable == true -> Palette.Amber
                         index < currentWeek ->
                             if (entry != null) Palette.Mint else Palette.Mint.copy(alpha = 0.40f)
                         entry != null -> Palette.Mint.copy(alpha = 0.75f)

@@ -34,6 +34,12 @@ import java.time.LocalDate
 fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDate) {
     val rows = ui.settings.lifeExpectancy
     val stats = remember(birth, today, rows) { LifeCalc.stats(birth, today, rows) }
+    val lastTimeWeeks = remember(ui.lastTimes, birth) {
+        ui.lastTimes
+            .map { LifeCalc.weekIndexOf(birth, LocalDate.ofEpochDay(it.epochDay)) }
+            .filter { it >= 0 }
+            .toSet()
+    }
     var zoomed by rememberSaveable { mutableStateOf(false) }
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
     val scroll = rememberScrollState()
@@ -69,6 +75,7 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
                 rows = rows,
                 currentWeek = stats.currentWeek,
                 entries = ui.entries,
+                lastTimeWeeks = lastTimeWeeks,
                 zoomed = zoomed,
                 verticalScroll = scroll,
                 onWeekClick = { selected = it },
@@ -84,6 +91,9 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
             currentWeek = stats.currentWeek,
             totalWeeks = stats.totalWeeks,
             entries = ui.entries,
+            lastTimes = ui.lastTimes.filter {
+                LifeCalc.weekIndexOf(birth, LocalDate.ofEpochDay(it.epochDay)) == week
+            },
             onSave = { vm.saveEntry(it) },
             onDelete = { vm.deleteEntry(it) },
             onSelect = { selected = it },
@@ -101,7 +111,8 @@ private fun Legend() {
     ) {
         LegendItem(Palette.Mint.copy(alpha = 0.4f), "vivida")
         LegendItem(Palette.Mint, "con nota")
-        LegendItem(Palette.Magenta, "memorable")
+        LegendItem(Palette.Amber, "memorable")
+        LegendItem(Palette.Magenta, "última vez")
         LegendItem(Palette.Slate.copy(alpha = 0.55f), "futura")
     }
 }

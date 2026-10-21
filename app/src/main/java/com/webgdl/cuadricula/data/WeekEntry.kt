@@ -32,7 +32,8 @@ interface WeekDao {
     suspend fun delete(weekIndex: Int)
 }
 
-@Database(entities = [WeekEntry::class], version = 1, exportSchema = false)
+@Database(entities = [WeekEntry::class, LastTime::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun weekDao(): WeekDao
+    abstract fun lastTimeDao(): LastTimeDao
 }

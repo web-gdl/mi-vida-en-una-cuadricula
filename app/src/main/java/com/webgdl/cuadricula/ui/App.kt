@@ -22,6 +22,7 @@ import java.time.LocalDate
 
 private enum class Tab(val label: String, val glyph: String) {
     Grid("Cuadrícula", "▦"),
+    LastTime("Última vez", "◈"),
     Stats("Cifras", "∑"),
     Settings("Ajustes", "⚙"),
 }
@@ -71,6 +72,7 @@ private fun MainScaffold(vm: MainViewModel, ui: com.webgdl.cuadricula.UiState, b
         Box(Modifier.padding(padding).fillMaxSize()) {
             when (Tab.entries[tabIndex]) {
                 Tab.Grid -> GridScreen(vm, ui, birth, today)
+                Tab.LastTime -> LastTimeScreen(vm, ui, birth, today)
                 Tab.Stats -> StatsScreen(ui, birth, today)
                 Tab.Settings -> SettingsScreen(vm, ui, birth)
             }

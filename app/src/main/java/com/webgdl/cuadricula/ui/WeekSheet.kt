@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.webgdl.cuadricula.data.LastTime
 import com.webgdl.cuadricula.data.WeekEntry
 import com.webgdl.cuadricula.domain.LifeCalc
 import com.webgdl.cuadricula.domain.WEEKS_PER_ROW
@@ -45,6 +46,7 @@ fun WeekSheet(
     currentWeek: Int,
     totalWeeks: Int,
     entries: Map<Int, WeekEntry>,
+    lastTimes: List<LastTime>,
     onSave: (WeekEntry) -> Unit,
     onDelete: (Int) -> Unit,
     onSelect: (Int) -> Unit,
@@ -119,6 +121,14 @@ fun WeekSheet(
                 TextButton(onClick = { goTo(weekIndex + 1) }, enabled = weekIndex < totalWeeks - 1) { Text("▶") }
             }
 
+            lastTimes.forEach {
+                Text(
+                    "● Última vez: ${it.title}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Palette.Magenta,
+                )
+            }
+
             Text("¿Cómo fue?", style = MaterialTheme.typography.labelMedium, color = Palette.Muted)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 moodFaces.forEachIndexed { i, face ->
@@ -148,8 +158,8 @@ fun WeekSheet(
                     checked = memorable,
                     onCheckedChange = { memorable = it },
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Palette.Magenta,
-                        checkedTrackColor = Palette.Magenta.copy(alpha = 0.4f),
+                        checkedThumbColor = Palette.Amber,
+                        checkedTrackColor = Palette.Amber.copy(alpha = 0.4f),
                     ),
                 )
             }

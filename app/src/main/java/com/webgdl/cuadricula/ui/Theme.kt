@@ -14,6 +14,7 @@ object Palette {
     val SurfaceHigh = Color(0xFF1B2634)
     val Mint = Color(0xFF00F5A0)
     val Magenta = Color(0xFFFF1F7A)
+    val Amber = Color(0xFFFFC857)
     val Slate = Color(0xFF3A4A5E)
     val Text = Color(0xFFE6EDF3)
     val Muted = Color(0xFF8A98A8)
