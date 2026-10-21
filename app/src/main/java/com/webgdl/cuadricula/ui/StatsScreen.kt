@@ -38,8 +38,6 @@ fun StatsScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDa
     val stats = remember(birth, today, ui.settings.lifeExpectancy) {
         LifeCalc.stats(birth, today, ui.settings.lifeExpectancy)
     }
-    var perYearText by rememberSaveable { mutableStateOf("12") }
-    val perYear = perYearText.toIntOrNull() ?: 0
     val memorable = ui.entries.values.count { it.isMemorable }
     val topTags = remember(ui.entries) {
         ui.entries.values
@@ -117,23 +115,6 @@ fun StatsScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDa
                 "A 120 pasos por minuto, lo que te queda se camina en menos de lo que dura una película.",
                 style = MaterialTheme.typography.bodySmall,
                 color = Palette.Muted,
-            )
-        }
-
-        InfoCard("¿Cuántas veces te quedan?") {
-            OutlinedTextField(
-                value = perYearText,
-                onValueChange = { perYearText = it.filter(Char::isDigit).take(4) },
-                label = { Text("Veces al año (libros, viajes, visitas…)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                "${(perYear * stats.yearsRemaining).fmt()} veces en lo que te queda",
-                style = MaterialTheme.typography.titleMedium,
-                color = Palette.Mint,
-                modifier = Modifier.padding(top = 8.dp),
             )
         }
 

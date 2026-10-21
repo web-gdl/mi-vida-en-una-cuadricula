@@ -16,6 +16,8 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -33,6 +35,7 @@ import com.webgdl.cuadricula.UiState
 import com.webgdl.cuadricula.domain.LAYER_COLORS
 import com.webgdl.cuadricula.domain.LayerRange
 import com.webgdl.cuadricula.domain.LifeCalc
+import com.webgdl.cuadricula.domain.Recurrence
 import com.webgdl.cuadricula.domain.layerRowColors
 import java.time.LocalDate
 
@@ -58,6 +61,13 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
         } else {
             null
         }
+    }
+    val highlightedId by vm.highlightedEvent.collectAsStateWithLifecycle()
+    val highlighted = ui.events.firstOrNull { it.id == highlightedId }
+    val highlightWeeks = remember(highlighted, stats.currentWeek, rows) {
+        highlighted?.let {
+            Recurrence.occurrenceWeeks(stats.currentWeek, it.timesPerYear, it.untilAge, rows)
+        } ?: emptySet()
     }
     var zoomed by rememberSaveable { mutableStateOf(false) }
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -100,6 +110,22 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
                     )
                 }
             }
+            if (highlighted != null) {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        "«${highlighted.name}»: te quedan ${highlightWeeks.size} " +
+                            if (highlightWeeks.size == 1) "semana marcada" else "semanas marcadas",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Palette.Mint,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = { vm.highlightEvent(null) }) { Text("Quitar") }
+                }
+            }
             Legend()
             if (showLayers) {
                 Row(
@@ -128,6 +154,7 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
                 entries = ui.entries,
                 lastTimeWeeks = lastTimeWeeks,
                 layerRowColors = layerColors,
+                highlightWeeks = highlightWeeks,
                 zoomed = zoomed,
                 verticalScroll = scroll,
                 viewportHeightPx = viewportPx,

@@ -18,6 +18,8 @@ object Backup {
         val lastTimes: List<LastTime>,
         val people: List<Person>,
         val layers: List<Layer>,
+        /** Cada evento con las fechas (epochDay) en que se registró. */
+        val events: List<Pair<RecurringEvent, List<Long>>>,
     )
 
     suspend fun export(app: CuadriculaApp): String {
@@ -77,6 +79,22 @@ object Backup {
             )
         }
         root.put("layers", layers)
+
+        val logsByEvent = db.eventDao().observeLogs().first().groupBy { it.eventId }
+        val events = JSONArray()
+        db.eventDao().observeEvents().first().forEach { e ->
+            val days = JSONArray()
+            logsByEvent[e.id].orEmpty().forEach { days.put(it.epochDay) }
+            events.put(
+                JSONObject()
+                    .put("name", e.name)
+                    .put("timesPerYear", e.timesPerYear)
+                    .put("untilAge", e.untilAge)
+                    .put("createdAt", e.createdAt)
+                    .put("logs", days)
+            )
+        }
+        root.put("events", events)
         return root.toString(2)
     }
 
@@ -100,6 +118,12 @@ object Backup {
             db.personDao().insertAll(parsed.people)
             db.layerDao().clear()
             db.layerDao().insertAll(parsed.layers)
+            db.eventDao().clearLogs()
+            db.eventDao().clearEvents()
+            parsed.events.forEach { (event, days) ->
+                val id = db.eventDao().insertEvent(event)
+                db.eventDao().insertLogs(days.map { EventLog(eventId = id, epochDay = it) })
+            }
         }
         val birth = parsed.birthEpochDay
         if (birth != null) {
@@ -166,6 +190,19 @@ object Backup {
                 )
             }
         }
+        // Los respaldos anteriores no traen eventos periódicos.
+        val events = (root.optJSONArray("events") ?: JSONArray()).let { arr ->
+            (0 until arr.length()).map { i ->
+                val o = arr.getJSONObject(i)
+                val logs = o.optJSONArray("logs") ?: JSONArray()
+                RecurringEvent(
+                    name = o.getString("name"),
+                    timesPerYear = o.getInt("timesPerYear").coerceIn(1, 365),
+                    untilAge = o.optInt("untilAge", 0).coerceIn(0, MAX_LIFE_EXPECTANCY),
+                    createdAt = o.optLong("createdAt", 0L),
+                ) to (0 until logs.length()).map { logs.getLong(it) }
+            }
+        }
         return Parsed(
             birthEpochDay = if (root.has("birthEpochDay")) root.getLong("birthEpochDay") else null,
             lifeExpectancy = root.getInt("lifeExpectancy").coerceIn(MIN_LIFE_EXPECTANCY, MAX_LIFE_EXPECTANCY),
@@ -173,6 +210,7 @@ object Backup {
             lastTimes = lastTimes,
             people = people,
             layers = layers,
+            events = events,
         )
     }
 }

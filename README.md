@@ -26,8 +26,9 @@ App nativa para Android (Kotlin + Jetpack Compose) basada en el video "Vida en s
 - **La última vez:** pestaña para anotar momentos que ya ocurrieron por última vez ("alguien te cargó en brazos"); se marcan en magenta en la cuadrícula y aparecen en el detalle de su semana. Las semanas memorables ahora se ven en ámbar.
 - **Capas de tu vida** (dentro de Cifras): etapas entre dos edades (escuela, trabajo…) con color propio, pintadas sobre la cuadrícula y en el widget; cada una muestra cuántas semanas te quedan. Se activan o desactivan con el botón *Capas*.
 - **Etiquetas:** cada semana admite etiquetas separadas por coma; Cifras muestra las más usadas.
+- **Eventos periódicos** (pestaña Eventos): lo que se repite — reuniones con amigos, ir a la playa, leer un libro… Indicas cuántas veces al año y hasta qué edad; la app dice **cuántas veces te quedan**, lleva la cuenta de este año y la última vez, y te deja registrar cada vez (hoy u otra fecha, con deshacer). *Ver en cuadrícula* marca en verde las semanas futuras donde caerían, como las "idas al mar" del video.
 - **Tiempo con personas** (dentro de Cifras): agrega a alguien con los días al año que lo ves y los años que calculas que les quedan; la app muestra los días que te quedan juntos.
-- **Cifras:** semanas vividas y restantes, cuánto pesa un año hoy (100 / edad), semanas como pasos (120 por minuto) y calculadora de "cuántas veces te quedan".
+- **Cifras:** semanas vividas y restantes, cuánto pesa un año hoy (100 / edad), semanas como pasos (120 por minuto) y capas y tiempo con personas.
 - **Widget de inicio:** la cuadrícula completa en la pantalla principal (mantén pulsado el inicio → Widgets → Mi vida en una cuadrícula). Se actualiza al guardar algo en la app y cada 6 horas; al tocarlo abre la app.
 - **Ajustes:** cambiar fecha de nacimiento y esperanza de vida, recordatorio cada lunes a las 9:00 y **respaldo**: exportar todo a un archivo JSON e importarlo después (reemplaza los datos actuales, solo si el archivo es válido).
 
@@ -50,7 +51,7 @@ Filtrar la cuadrícula por etiqueta y la gráfica de horas al día según la eda
 ## Compilación y tamaño del APK
 GitHub Actions (`.github/workflows/build-apk.yml`) en cada push a `main`:
 1. corre las pruebas unitarias y compila el APK **release**;
-2. lo instala en un emulador Android 11 y verifica que la app abre sin cerrarse (`.github/scripts/smoke-test.sh`);
+2. en un emulador Android 11 instala la versión publicada, luego la nueva **encima** (como una actualización real, lo que ejecuta las migraciones de la base de datos) y verifica que la app abre sin cerrarse (`.github/scripts/smoke-test.sh`);
 3. solo entonces lo publica en el release `latest`.
 
 Qué hace pequeño el APK:

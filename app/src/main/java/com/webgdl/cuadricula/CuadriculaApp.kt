@@ -6,13 +6,14 @@ import com.webgdl.cuadricula.data.AppDatabase
 import com.webgdl.cuadricula.data.MIGRATION_1_2
 import com.webgdl.cuadricula.data.MIGRATION_2_3
 import com.webgdl.cuadricula.data.MIGRATION_3_4
+import com.webgdl.cuadricula.data.MIGRATION_4_5
 import com.webgdl.cuadricula.data.SettingsRepository
 import com.webgdl.cuadricula.reminder.ReminderScheduler
 
 class CuadriculaApp : Application() {
     val database: AppDatabase by lazy {
         Room.databaseBuilder(this, AppDatabase::class.java, "cuadricula.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .build()
     }
     val settingsRepository: SettingsRepository by lazy { SettingsRepository(this) }

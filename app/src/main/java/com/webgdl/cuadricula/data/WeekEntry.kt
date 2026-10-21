@@ -40,10 +40,15 @@ interface WeekDao {
     suspend fun clear()
 }
 
-@Database(entities = [WeekEntry::class, LastTime::class, Person::class, Layer::class], version = 4, exportSchema = false)
+@Database(entities = [
+        WeekEntry::class, LastTime::class, Person::class, Layer::class,
+        RecurringEvent::class, EventLog::class,
+    ],
+    version = 5, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun weekDao(): WeekDao
     abstract fun lastTimeDao(): LastTimeDao
     abstract fun personDao(): PersonDao
     abstract fun layerDao(): LayerDao
+    abstract fun eventDao(): EventDao
 }

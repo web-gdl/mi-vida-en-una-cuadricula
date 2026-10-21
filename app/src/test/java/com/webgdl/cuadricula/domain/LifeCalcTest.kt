@@ -65,4 +65,25 @@ class LifeCalcTest {
         assertEquals("trabajo, amor", normalizeTags(" Trabajo, amor ,TRABAJO,, "))
         assertEquals(emptyList<String>(), parseTags(" , ,"))
     }
+
+    @Test fun beachTwiceAYearAtThirty() =
+        // A los 30 años justos (semana 1560), 2 veces al año hasta los 80.
+        assertEquals(99, Recurrence.remainingTimes(1560, 2, 0, 80))
+
+    @Test fun untilAgeLimitsRemaining() =
+        assertEquals((65 * 52 - 1561) * 12 / 52, Recurrence.remainingTimes(1560, 12, 65, 80))
+
+    @Test fun untilAgeAlreadyPassedIsZero() =
+        assertEquals(0, Recurrence.remainingTimes(3500, 12, 60, 80))
+
+    @Test fun occurrencesAreFutureAndInsideRange() {
+        val weeks = Recurrence.occurrenceWeeks(1560, 2, 0, 80)
+        assertEquals(99, weeks.size)
+        assertEquals(true, weeks.all { it > 1560 && it < 80 * 52 })
+    }
+
+    @Test fun manyPerWeekCollapseToWeeks() {
+        val weeks = Recurrence.occurrenceWeeks(0, 365, 0, 1)
+        assertEquals(51, weeks.size)
+    }
 }

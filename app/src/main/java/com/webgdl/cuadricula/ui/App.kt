@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -23,6 +24,7 @@ import java.time.LocalDate
 private enum class Tab(val label: String, val glyph: String) {
     Grid("Cuadrícula", "▦"),
     LastTime("Última vez", "◈"),
+    Events("Eventos", "↻"),
     Stats("Cifras", "∑"),
     Settings("Ajustes", "⚙"),
 }
@@ -56,7 +58,7 @@ private fun MainScaffold(vm: MainViewModel, ui: com.webgdl.cuadricula.UiState, b
                         selected = tabIndex == i,
                         onClick = { tabIndex = i },
                         icon = { Text(tab.glyph) },
-                        label = { Text(tab.label) },
+                        label = { Text(tab.label, style = MaterialTheme.typography.labelSmall, maxLines = 1) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Palette.Mint,
                             selectedTextColor = Palette.Mint,
@@ -73,6 +75,10 @@ private fun MainScaffold(vm: MainViewModel, ui: com.webgdl.cuadricula.UiState, b
             when (Tab.entries[tabIndex]) {
                 Tab.Grid -> GridScreen(vm, ui, birth, today)
                 Tab.LastTime -> LastTimeScreen(vm, ui, birth, today)
+                Tab.Events -> EventsScreen(vm, ui, birth, today, onShowInGrid = { id ->
+                    vm.highlightEvent(id)
+                    tabIndex = Tab.Grid.ordinal
+                })
                 Tab.Stats -> StatsScreen(vm, ui, birth, today)
                 Tab.Settings -> SettingsScreen(vm, ui, birth)
             }

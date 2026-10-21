@@ -5,17 +5,22 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.webgdl.cuadricula.data.Backup
+import com.webgdl.cuadricula.data.EventLog
 import com.webgdl.cuadricula.data.LastTime
 import com.webgdl.cuadricula.data.Layer
 import com.webgdl.cuadricula.data.Person
+import com.webgdl.cuadricula.data.RecurringEvent
 import com.webgdl.cuadricula.data.UserSettings
 import com.webgdl.cuadricula.data.WeekEntry
 import com.webgdl.cuadricula.reminder.ReminderScheduler
 import com.webgdl.cuadricula.widget.GridWidget
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
+import androidx.room.withTransaction
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -28,6 +33,8 @@ data class UiState(
     val lastTimes: List<LastTime> = emptyList(),
     val people: List<Person> = emptyList(),
     val layers: List<Layer> = emptyList(),
+    val events: List<RecurringEvent> = emptyList(),
+    val eventLogs: List<EventLog> = emptyList(),
 )
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -37,8 +44,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val lastTimeDao = cuadricula.database.lastTimeDao()
     private val personDao = cuadricula.database.personDao()
     private val layerDao = cuadricula.database.layerDao()
+    private val eventDao = cuadricula.database.eventDao()
 
-    val state: StateFlow<UiState> = combine(
+    private val baseState = combine(
         settingsRepo.settings,
         dao.observeAll(),
         lastTimeDao.observeAll(),
@@ -53,7 +61,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             people = people,
             layers = layers,
         )
+    }
+
+    val state: StateFlow<UiState> = combine(
+        baseState,
+        eventDao.observeEvents(),
+        eventDao.observeLogs(),
+    ) { base, events, logs ->
+        base.copy(events = events, eventLogs = logs)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
+
+    /** Evento periódico cuyas veces restantes se pintan en la cuadrícula (null = ninguno). */
+    private val _highlightedEvent = MutableStateFlow<Long?>(null)
+    val highlightedEvent: StateFlow<Long?> = _highlightedEvent.asStateFlow()
+
+    fun highlightEvent(id: Long?) {
+        _highlightedEvent.value = id
+    }
 
     fun saveProfile(birth: LocalDate, lifeExpectancy: Int) =
         viewModelScope.launch {
@@ -164,4 +188,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (ok) GridWidget.updateAll(cuadricula)
         onResult(ok)
     }
+
+    fun addEvent(name: String, timesPerYear: Int, untilAge: Int) = viewModelScope.launch {
+        eventDao.insertEvent(
+            RecurringEvent(
+                name = name.trim(),
+                timesPerYear = timesPerYear,
+                untilAge = untilAge,
+                createdAt = System.currentTimeMillis(),
+            )
+        )
+    }
+
+    fun deleteEvent(id: Long) = viewModelScope.launch {
+        if (_highlightedEvent.value == id) _highlightedEvent.value = null
+        cuadricula.database.withTransaction {
+            eventDao.deleteLogsOf(id)
+            eventDao.deleteEvent(id)
+        }
+    }
+
+    fun logEvent(id: Long, date: LocalDate) = viewModelScope.launch {
+        eventDao.insertLog(EventLog(eventId = id, epochDay = date.toEpochDay()))
+    }
+
+    fun undoLastLog(id: Long) = viewModelScope.launch { eventDao.deleteLatestLog(id) }
 }
