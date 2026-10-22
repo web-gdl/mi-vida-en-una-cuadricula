@@ -74,6 +74,20 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: bash .github/scripts/smoke-test.sh MiVidaEnUnaCuadricula.apk previous.apk
 
+      - name: Guardar capturas en la rama ci-screenshots
+        if: always() && github.event_name != 'pull_request'
+        run: |
+          [ -d screenshots ] || exit 0
+          cp -r screenshots /tmp/screenshots
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout --orphan ci-screenshots
+          git rm -rf . > /dev/null
+          cp /tmp/screenshots/*.png . 2>/dev/null || true
+          git add *.png 2>/dev/null || true
+          git commit -m "Capturas del emulador para ${GITHUB_SHA::7}" || exit 0
+          git push -f origin ci-screenshots
+
   publish:
     needs: smoke-test
     if: github.event_name != 'pull_request'

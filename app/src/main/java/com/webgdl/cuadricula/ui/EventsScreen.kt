@@ -7,7 +7,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -23,7 +28,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.webgdl.cuadricula.MainViewModel
@@ -63,52 +70,58 @@ fun EventsScreen(
     val currentWeek = remember(birth, today) { maxOf(0, LifeCalc.weekIndexOf(birth, today)) }
     val logsByEvent = remember(ui.eventLogs) { ui.eventLogs.groupBy { it.eventId } }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Text(
-            "Eventos periódicos",
-            style = MaterialTheme.typography.titleLarge,
-            color = Palette.Mint,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-        Text(
-            "Lo que se repite también se acaba. ¿Cuántas reuniones con amigos te quedan? " +
-                "¿Cuántas veces volverás a la playa? Regístralo cada vez que pase.",
-            style = MaterialTheme.typography.bodySmall,
-            color = Palette.Muted,
-            modifier = Modifier.padding(vertical = 8.dp),
-        )
-        Button(onClick = { showAdd = true }, modifier = Modifier.fillMaxWidth()) {
-            Text("Agregar evento")
-        }
-
-        if (ui.events.isEmpty()) {
+    LazyColumn(
+        Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
             Text(
-                "Todavía no hay eventos. Prueba con \"Reunión con amigos\" o \"Ir a la playa\".",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Palette.Muted,
-                modifier = Modifier.padding(top = 24.dp),
+                "Eventos periódicos",
+                style = MaterialTheme.typography.titleLarge,
+                color = Palette.Mint,
+                modifier = Modifier.padding(top = 8.dp),
             )
-        } else {
-            LazyColumn(
-                Modifier.fillMaxSize().padding(top = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                items(ui.events, key = { it.id }) { event ->
-                    EventCard(
-                        event = event,
-                        logs = logsByEvent[event.id].orEmpty(),
-                        currentWeek = currentWeek,
-                        lifeExpectancy = ui.settings.lifeExpectancy,
-                        birth = birth,
-                        today = today,
-                        onLog = { date -> vm.logEvent(event.id, date) },
-                        onUndo = { vm.undoLastLog(event.id) },
-                        onShowInGrid = { onShowInGrid(event.id) },
-                        onDelete = { vm.deleteEvent(event.id) },
-                    )
-                }
+        }
+        item {
+            Text(
+                "Lo que se repite también se acaba. ¿Cuántas reuniones con amigos te quedan? " +
+                    "¿Cuántas veces volverás a la playa? Regístralo cada vez que pase: " +
+                    "cada evento se marca con su color en tu cuadrícula.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Palette.Muted,
+            )
+        }
+        item {
+            Button(onClick = { showAdd = true }, modifier = Modifier.fillMaxWidth()) {
+                Text("Agregar evento")
             }
         }
+        if (ui.events.isEmpty()) {
+            item {
+                Text(
+                    "Todavía no hay eventos. Prueba con \"Reunión con amigos\" o \"Ir a la playa\".",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Palette.Muted,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+            }
+        }
+        itemsIndexed(ui.events, key = { _, e -> e.id }) { i, event ->
+            EventCard(
+                event = event,
+                color = Palette.eventColor(i),
+                logs = logsByEvent[event.id].orEmpty(),
+                currentWeek = currentWeek,
+                lifeExpectancy = ui.settings.lifeExpectancy,
+                birth = birth,
+                today = today,
+                onLog = { date -> vm.logEvent(event.id, date) },
+                onUndo = { vm.undoLastLog(event.id) },
+                onShowInGrid = { onShowInGrid(event.id) },
+                onDelete = { vm.deleteEvent(event.id) },
+            )
+        }
+        item { Spacer(Modifier.height(8.dp)) }
     }
 
     if (showAdd) {
@@ -125,6 +138,7 @@ fun EventsScreen(
 @Composable
 private fun EventCard(
     event: RecurringEvent,
+    color: Color,
     logs: List<EventLog>,
     currentWeek: Int,
     lifeExpectancy: Int,
@@ -143,15 +157,17 @@ private fun EventCard(
     val until = if (event.untilAge <= 0) "toda la vida" else "hasta los ${event.untilAge} años"
 
     InfoCard("${event.timesPerYear} ${if (event.timesPerYear == 1) "vez" else "veces"} al año · $until") {
-        Text(
-            event.name,
-            style = MaterialTheme.typography.titleMedium,
-            color = Palette.Text,
-            modifier = Modifier.padding(top = 4.dp),
-        )
+        Row(
+            Modifier.padding(top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(Modifier.size(12.dp).background(color))
+            Text(event.name, style = MaterialTheme.typography.titleMedium, color = Palette.Text)
+        }
         Text(
             if (remaining == 0) "Ya no quedan veces en tu cuenta." else "Te quedan ${numberFormat.format(remaining)} veces",
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.titleLarge,
             color = if (remaining == 0) Palette.Magenta else Palette.Mint,
         )
         Text(
@@ -172,7 +188,7 @@ private fun EventCard(
             OutlinedButton(onClick = { pickDate = true }, modifier = Modifier.weight(1f)) { Text("Otra fecha") }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            TextButton(onClick = onShowInGrid, enabled = remaining > 0) { Text("Ver en cuadrícula") }
+            TextButton(onClick = onShowInGrid) { Text("Ver solo este") }
             if (logs.isNotEmpty()) TextButton(onClick = onUndo) { Text("Deshacer") }
             TextButton(onClick = { confirmDelete = true }) { Text("Borrar") }
         }

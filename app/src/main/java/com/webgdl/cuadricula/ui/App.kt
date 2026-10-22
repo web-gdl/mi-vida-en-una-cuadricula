@@ -22,8 +22,8 @@ import com.webgdl.cuadricula.MainViewModel
 import java.time.LocalDate
 
 private enum class Tab(val label: String, val glyph: String) {
-    Grid("Cuadrícula", "▦"),
-    LastTime("Última vez", "◈"),
+    Grid("Vida", "▦"),
+    LastTime("Última", "◈"),
     Events("Eventos", "↻"),
     Stats("Cifras", "∑"),
     Settings("Ajustes", "⚙"),
@@ -76,7 +76,7 @@ private fun MainScaffold(vm: MainViewModel, ui: com.webgdl.cuadricula.UiState, b
                 Tab.Grid -> GridScreen(vm, ui, birth, today)
                 Tab.LastTime -> LastTimeScreen(vm, ui, birth, today)
                 Tab.Events -> EventsScreen(vm, ui, birth, today, onShowInGrid = { id ->
-                    vm.highlightEvent(id)
+                    vm.showOnlyEvent(id)
                     tabIndex = Tab.Grid.ordinal
                 })
                 Tab.Stats -> StatsScreen(vm, ui, birth, today)

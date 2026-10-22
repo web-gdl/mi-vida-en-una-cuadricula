@@ -13,8 +13,8 @@ android {
         applicationId = "com.webgdl.cuadricula"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "2.1"
+        versionCode = 4
+        versionName = "2.2"
         // Solo español: elimina las traducciones de las librerías a decenas de idiomas.
         resourceConfigurations += listOf("es")
     }

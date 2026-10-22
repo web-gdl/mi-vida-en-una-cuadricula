@@ -18,6 +18,16 @@ object Palette {
     val Slate = Color(0xFF3A4A5E)
     val Text = Color(0xFFE6EDF3)
     val Muted = Color(0xFF8A98A8)
+
+    /** Colores de las marcas de eventos periódicos (distintos de los de estado y de capas). */
+    val EventColors = listOf(
+        Color(0xFFFFFFFF), // blanco
+        Color(0xFF00E5FF), // cian
+        Color(0xFFFFEB3B), // amarillo
+        Color(0xFFFF80AB), // rosa
+    )
+
+    fun eventColor(index: Int): Color = EventColors[index % EventColors.size]
 }
 
 private val Mono = FontFamily.Monospace

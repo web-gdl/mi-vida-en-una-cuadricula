@@ -71,12 +71,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         base.copy(events = events, eventLogs = logs)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
 
-    /** Evento periódico cuyas veces restantes se pintan en la cuadrícula (null = ninguno). */
-    private val _highlightedEvent = MutableStateFlow<Long?>(null)
-    val highlightedEvent: StateFlow<Long?> = _highlightedEvent.asStateFlow()
+    /** Eventos periódicos ocultos en la cuadrícula; por defecto se muestran todos. */
+    private val _hiddenEvents = MutableStateFlow<Set<Long>>(emptySet())
+    val hiddenEvents: StateFlow<Set<Long>> = _hiddenEvents.asStateFlow()
 
-    fun highlightEvent(id: Long?) {
-        _highlightedEvent.value = id
+    fun toggleEventVisible(id: Long) {
+        val current = _hiddenEvents.value
+        _hiddenEvents.value = if (id in current) current - id else current + id
+    }
+
+    /** Deja visible solo ese evento en la cuadrícula. */
+    fun showOnlyEvent(id: Long) {
+        _hiddenEvents.value = state.value.events.map { it.id }.filter { it != id }.toSet()
     }
 
     fun saveProfile(birth: LocalDate, lifeExpectancy: Int) =
@@ -201,7 +207,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun deleteEvent(id: Long) = viewModelScope.launch {
-        if (_highlightedEvent.value == id) _highlightedEvent.value = null
+        _hiddenEvents.value = _hiddenEvents.value - id
         cuadricula.database.withTransaction {
             eventDao.deleteLogsOf(id)
             eventDao.deleteEvent(id)

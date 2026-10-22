@@ -2,6 +2,8 @@ package com.webgdl.cuadricula.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,6 +41,7 @@ import com.webgdl.cuadricula.domain.Recurrence
 import com.webgdl.cuadricula.domain.layerRowColors
 import java.time.LocalDate
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDate) {
     val rows = ui.settings.lifeExpectancy
@@ -62,12 +65,22 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
             null
         }
     }
-    val highlightedId by vm.highlightedEvent.collectAsStateWithLifecycle()
-    val highlighted = ui.events.firstOrNull { it.id == highlightedId }
-    val highlightWeeks = remember(highlighted, stats.currentWeek, rows) {
-        highlighted?.let {
-            Recurrence.occurrenceWeeks(stats.currentWeek, it.timesPerYear, it.untilAge, rows)
-        } ?: emptySet()
+    val hidden by vm.hiddenEvents.collectAsStateWithLifecycle()
+    val eventMarks = remember(ui.events, ui.eventLogs, hidden, stats.currentWeek, rows, birth) {
+        val marks = HashMap<Int, Color>()
+        val logsByEvent = ui.eventLogs.groupBy { it.eventId }
+        // Se recorre al revés para que, si dos eventos caen en la misma semana, gane el primero.
+        ui.events.withIndex().reversed().forEach { (i, event) ->
+            if (event.id in hidden) return@forEach
+            val color = Palette.eventColor(i)
+            Recurrence.occurrenceWeeks(stats.currentWeek, event.timesPerYear, event.untilAge, rows)
+                .forEach { marks[it] = color }
+            logsByEvent[event.id].orEmpty().forEach {
+                val week = LifeCalc.weekIndexOf(birth, LocalDate.ofEpochDay(it.epochDay))
+                if (week >= 0) marks[week] = color
+            }
+        }
+        marks
     }
     var zoomed by rememberSaveable { mutableStateOf(false) }
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -77,59 +90,29 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text("Mi vida en una cuadrícula", style = MaterialTheme.typography.titleLarge, color = Palette.Mint)
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+            Text(
+                "Semana ${stats.currentWeek + 1} de ${stats.totalWeeks} · ${(stats.percentLived * 100).toInt()} %",
+                style = MaterialTheme.typography.bodySmall,
+                color = Palette.Muted,
+            )
+            FlowRow(
+                Modifier.fillMaxWidth().padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    "Semana ${stats.currentWeek + 1} de ${stats.totalWeeks} · ${(stats.percentLived * 100).toInt()} %",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Palette.Muted,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (ui.layers.isNotEmpty()) {
-                        FilterChip(
-                            selected = ui.settings.showLayers,
-                            onClick = { vm.setShowLayers(!ui.settings.showLayers) },
-                            label = { Text("Capas") },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Palette.SurfaceHigh,
-                                selectedLabelColor = Palette.Mint,
-                            ),
-                        )
-                    }
-                    FilterChip(
-                        selected = zoomed,
-                        onClick = { zoomed = !zoomed },
-                        label = { Text("Ampliar") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Palette.SurfaceHigh,
-                            selectedLabelColor = Palette.Mint,
-                        ),
-                    )
+                if (ui.layers.isNotEmpty()) {
+                    ToggleChip("Capas", ui.settings.showLayers) { vm.setShowLayers(!ui.settings.showLayers) }
                 }
-            }
-            if (highlighted != null) {
-                Row(
-                    Modifier.fillMaxWidth().padding(top = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        "«${highlighted.name}»: te quedan ${highlightWeeks.size} " +
-                            if (highlightWeeks.size == 1) "semana marcada" else "semanas marcadas",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Palette.Mint,
-                        modifier = Modifier.weight(1f),
-                    )
-                    TextButton(onClick = { vm.highlightEvent(null) }) { Text("Quitar") }
+                ToggleChip("Ampliar", zoomed) { zoomed = !zoomed }
+                ui.events.forEachIndexed { i, event ->
+                    ToggleChip(event.name, event.id !in hidden, dot = Palette.eventColor(i)) {
+                        vm.toggleEventVisible(event.id)
+                    }
                 }
             }
             Legend()
             if (showLayers) {
-                Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 4.dp),
+                FlowRow(
+                    Modifier.fillMaxWidth().padding(top = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     ui.layers.forEach {
@@ -154,7 +137,7 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
                 entries = ui.entries,
                 lastTimeWeeks = lastTimeWeeks,
                 layerRowColors = layerColors,
-                highlightWeeks = highlightWeeks,
+                eventMarks = eventMarks,
                 zoomed = zoomed,
                 verticalScroll = scroll,
                 viewportHeightPx = viewportPx,
@@ -182,12 +165,12 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Legend() {
-    Row(
+    FlowRow(
         Modifier.fillMaxWidth().padding(top = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
         LegendItem(Palette.Mint.copy(alpha = 0.4f), "vivida")
         LegendItem(Palette.Mint, "con nota")
@@ -203,4 +186,20 @@ private fun LegendItem(color: Color, text: String) {
         Box(Modifier.size(8.dp).background(color))
         Text(text, style = MaterialTheme.typography.labelSmall, color = Palette.Muted)
     }
+}
+
+@Composable
+private fun ToggleChip(label: String, selected: Boolean, dot: Color? = null, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label, maxLines = 1) },
+        leadingIcon = dot?.let {
+            { Box(Modifier.size(10.dp).background(if (selected) it else it.copy(alpha = 0.3f))) }
+        },
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = Palette.SurfaceHigh,
+            selectedLabelColor = Palette.Mint,
+        ),
+    )
 }

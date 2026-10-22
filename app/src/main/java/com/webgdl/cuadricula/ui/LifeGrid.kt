@@ -46,7 +46,8 @@ fun LifeGrid(
     entries: Map<Int, WeekEntry>,
     lastTimeWeeks: Set<Int>,
     layerRowColors: IntArray?,
-    highlightWeeks: Set<Int>,
+    /** Semana -> color de la marca del evento periódico que cae en ella. */
+    eventMarks: Map<Int, Color>,
     zoomed: Boolean,
     verticalScroll: ScrollState,
     viewportHeightPx: Int,
@@ -138,7 +139,6 @@ fun LifeGrid(
                     val entry = entries[index]
                     val color: Color = when {
                         index == currentWeek -> Palette.Mint.copy(alpha = pulse)
-                        index in highlightWeeks -> Palette.Mint
                         index in lastTimeWeeks -> Palette.Magenta
                         entry?.isMemorable == true -> Palette.Amber
                         layer != 0 && entry == null && index < currentWeek ->
@@ -150,11 +150,14 @@ fun LifeGrid(
                         entry != null -> Palette.Mint.copy(alpha = 0.75f)
                         else -> Palette.Slate.copy(alpha = 0.55f)
                     }
-                    drawRect(
-                        color = color,
-                        topLeft = Offset(leftPad + col * cell + inset, y),
-                        size = Size(side, side),
-                    )
+                    val x = leftPad + col * cell + inset
+                    drawRect(color = color, topLeft = Offset(x, y), size = Size(side, side))
+                    // Evento periódico: cuadro interior con el color del evento.
+                    eventMarks[index]?.let { mark ->
+                        val m = side * 0.5f
+                        val o = (side - m) / 2f
+                        drawRect(color = mark, topLeft = Offset(x + o, y + o), size = Size(m, m))
+                    }
                 }
             }
 
