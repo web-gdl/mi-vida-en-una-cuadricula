@@ -33,18 +33,35 @@ shot() {
   adb exec-out screencap -p > "screenshots/$1.png" || true
 }
 
-tap() {
+swipe_up() {
+  local size w h
+  size="$(adb shell wm size | grep -oE '[0-9]+x[0-9]+' | tail -1)"
+  w="${size%x*}"; h="${size#*x}"
+  adb shell input swipe $((w / 2)) $((h * 3 / 4)) $((w / 2)) $((h / 4)) 300
+  sleep 1
+}
+
+find_xy() {
   adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1 || true
   adb pull /sdcard/ui.xml /tmp/ui.xml > /dev/null 2>&1 || true
-  local xy
-  xy="$(python3 "$SCRIPTS/find_node.py" /tmp/ui.xml "$1" 2>/dev/null || true)"
-  if [ -z "$xy" ]; then
-    echo "  (recorrido) no encontré: $1"
-    return 1
-  fi
-  # shellcheck disable=SC2086
-  adb shell input tap $xy
-  sleep 2
+  python3 "$SCRIPTS/find_node.py" /tmp/ui.xml "$1" 2>/dev/null || true
+}
+
+# Toca el elemento con ese texto; si no se ve, desplaza hacia abajo hasta 4 veces.
+tap() {
+  local xy attempt
+  for attempt in 0 1 2 3 4; do
+    xy="$(find_xy "$1")"
+    if [ -n "$xy" ]; then
+      # shellcheck disable=SC2086
+      adb shell input tap $xy
+      sleep 2
+      return 0
+    fi
+    [ "$attempt" -lt 4 ] && swipe_up
+  done
+  echo "  (recorrido) no encontré: $1"
+  return 1
 }
 
 if [ -n "$PREVIOUS" ] && [ -f "$PREVIOUS" ]; then
@@ -79,7 +96,6 @@ tap "Ver mi cuadrícula"
 sleep 3
 shot 03-cuadricula-vacia
 tap "Cifras"
-for _ in 1 2 3; do adb shell input swipe 500 1500 500 400 300; done
 tap "Agregar capa" && tap "Trabajo 25" && tap "Guardar"
 tap "Eventos"
 tap "Agregar evento" && tap "Ir a la playa" && tap "Guardar"
