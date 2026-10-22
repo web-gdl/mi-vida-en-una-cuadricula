@@ -86,4 +86,26 @@ class LifeCalcTest {
         val weeks = Recurrence.occurrenceWeeks(0, 365, 0, 1)
         assertEquals(51, weeks.size)
     }
+
+    @Test fun rarestEventWinsOverlaps() {
+        // Caso real: vida de 100 años, semana actual 2583, playa 42/año (primero) y amigos 6/año.
+        val marks = computeEventMarks(
+            listOf(EventMarkSpec(42, 0, 1), EventMarkSpec(6, 0, 2)),
+            currentWeek = 2583,
+            lifeExpectancy = 100,
+        )
+        assertEquals(301, marks.values.count { it == 2 })
+        assertEquals(1811, marks.values.count { it == 1 })
+    }
+
+    @Test fun equalFrequencyFirstWins() {
+        val marks = computeEventMarks(listOf(EventMarkSpec(12, 0, 1), EventMarkSpec(12, 0, 2)), 0, 80)
+        assertEquals(setOf(1), marks.values.toSet())
+    }
+
+    @Test fun loggedWeeksAreMarked() {
+        val marks = computeEventMarks(listOf(EventMarkSpec(2, 0, 7, loggedWeeks = listOf(10, -1))), 2583, 100)
+        assertEquals(7, marks[10])
+        assertEquals(false, marks.containsKey(-1))
+    }
 }

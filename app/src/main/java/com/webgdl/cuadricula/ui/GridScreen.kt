@@ -37,7 +37,9 @@ import com.webgdl.cuadricula.UiState
 import com.webgdl.cuadricula.domain.LAYER_COLORS
 import com.webgdl.cuadricula.domain.LayerRange
 import com.webgdl.cuadricula.domain.LifeCalc
-import com.webgdl.cuadricula.domain.Recurrence
+import com.webgdl.cuadricula.domain.EventMarkSpec
+import com.webgdl.cuadricula.domain.computeEventMarks
+import com.webgdl.cuadricula.domain.eventColorArgb
 import com.webgdl.cuadricula.domain.layerRowColors
 import java.time.LocalDate
 
@@ -67,20 +69,24 @@ fun GridScreen(vm: MainViewModel, ui: UiState, birth: LocalDate, today: LocalDat
     }
     val hidden by vm.hiddenEvents.collectAsStateWithLifecycle()
     val eventMarks = remember(ui.events, ui.eventLogs, hidden, stats.currentWeek, rows, birth) {
-        val marks = HashMap<Int, Color>()
         val logsByEvent = ui.eventLogs.groupBy { it.eventId }
-        // Se recorre al revés para que, si dos eventos caen en la misma semana, gane el primero.
-        ui.events.withIndex().reversed().forEach { (i, event) ->
-            if (event.id in hidden) return@forEach
-            val color = Palette.eventColor(i)
-            Recurrence.occurrenceWeeks(stats.currentWeek, event.timesPerYear, event.untilAge, rows)
-                .forEach { marks[it] = color }
-            logsByEvent[event.id].orEmpty().forEach {
-                val week = LifeCalc.weekIndexOf(birth, LocalDate.ofEpochDay(it.epochDay))
-                if (week >= 0) marks[week] = color
-            }
-        }
-        marks
+        computeEventMarks(
+            ui.events.mapIndexedNotNull { i, event ->
+                if (event.id in hidden) {
+                    null
+                } else {
+                    EventMarkSpec(
+                        timesPerYear = event.timesPerYear,
+                        untilAge = event.untilAge,
+                        color = eventColorArgb(i),
+                        loggedWeeks = logsByEvent[event.id].orEmpty()
+                            .map { LifeCalc.weekIndexOf(birth, LocalDate.ofEpochDay(it.epochDay)) },
+                    )
+                }
+            },
+            stats.currentWeek,
+            rows,
+        )
     }
     var zoomed by rememberSaveable { mutableStateOf(false) }
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }

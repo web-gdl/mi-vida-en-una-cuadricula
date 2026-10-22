@@ -16,7 +16,10 @@ import com.webgdl.cuadricula.CuadriculaApp
 import com.webgdl.cuadricula.MainActivity
 import com.webgdl.cuadricula.R
 import com.webgdl.cuadricula.data.WeekEntry
+import com.webgdl.cuadricula.domain.EventMarkSpec
 import com.webgdl.cuadricula.domain.LAYER_COLORS
+import com.webgdl.cuadricula.domain.computeEventMarks
+import com.webgdl.cuadricula.domain.eventColorArgb
 import com.webgdl.cuadricula.domain.LayerRange
 import com.webgdl.cuadricula.domain.LifeCalc
 import com.webgdl.cuadricula.domain.layerRowColors
@@ -60,6 +63,8 @@ object GridWidget {
             val entries = app.database.weekDao().observeAll().first().associateBy { it.weekIndex }
             val lastTimes = app.database.lastTimeDao().observeAll().first()
             val layers = app.database.layerDao().observeAll().first()
+            val events = app.database.eventDao().observeEvents().first()
+            val eventLogs = app.database.eventDao().observeLogs().first()
 
             val open = PendingIntent.getActivity(
                 app, 0, Intent(app, MainActivity::class.java),
@@ -89,6 +94,20 @@ object GridWidget {
                 } else {
                     null
                 }
+                val logsByEvent = eventLogs.groupBy { it.eventId }
+                val eventMarks = computeEventMarks(
+                    events.mapIndexed { i, e ->
+                        EventMarkSpec(
+                            timesPerYear = e.timesPerYear,
+                            untilAge = e.untilAge,
+                            color = eventColorArgb(i),
+                            loggedWeeks = logsByEvent[e.id].orEmpty()
+                                .map { LifeCalc.weekIndexOf(birth, LocalDate.ofEpochDay(it.epochDay)) },
+                        )
+                    },
+                    stats.currentWeek,
+                    rows,
+                )
                 views.setTextViewText(
                     R.id.widget_title,
                     "Semana ${stats.currentWeek + 1} de ${stats.totalWeeks} · ${(stats.percentLived * 100).toInt()} %",
@@ -96,7 +115,7 @@ object GridWidget {
                 views.setViewVisibility(R.id.widget_image, View.VISIBLE)
                 views.setImageViewBitmap(
                     R.id.widget_image,
-                    GridRenderer.render(BITMAP_W, BITMAP_H, rows, stats.currentWeek, entries, lastTimeWeeks, layerColors),
+                    GridRenderer.render(BITMAP_W, BITMAP_H, rows, stats.currentWeek, entries, lastTimeWeeks, layerColors, eventMarks),
                 )
             }
             ids.forEach { manager.updateAppWidget(it, views) }
@@ -124,6 +143,7 @@ object GridRenderer {
         entries: Map<Int, WeekEntry>,
         lastTimeWeeks: Set<Int>,
         layerRowColors: IntArray?,
+        eventMarks: Map<Int, Int>,
     ): Bitmap {
         val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -155,6 +175,12 @@ object GridRenderer {
                 }
                 val x = left + col * cell + inset
                 canvas.drawRect(x, y, x + side, y + side, paint)
+                eventMarks[index]?.let { mark ->
+                    paint.color = mark
+                    val m = side * 0.5f
+                    val o = (side - m) / 2f
+                    canvas.drawRect(x + o, y + o, x + o + m, y + o + m, paint)
+                }
             }
         }
 

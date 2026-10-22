@@ -204,6 +204,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 createdAt = System.currentTimeMillis(),
             )
         )
+        GridWidget.updateAll(cuadricula)
     }
 
     fun deleteEvent(id: Long) = viewModelScope.launch {
@@ -212,11 +213,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             eventDao.deleteLogsOf(id)
             eventDao.deleteEvent(id)
         }
+        GridWidget.updateAll(cuadricula)
     }
 
     fun logEvent(id: Long, date: LocalDate) = viewModelScope.launch {
         eventDao.insertLog(EventLog(eventId = id, epochDay = date.toEpochDay()))
+        GridWidget.updateAll(cuadricula)
     }
 
-    fun undoLastLog(id: Long) = viewModelScope.launch { eventDao.deleteLatestLog(id) }
+    fun undoLastLog(id: Long) = viewModelScope.launch {
+        eventDao.deleteLatestLog(id)
+        GridWidget.updateAll(cuadricula)
+    }
 }

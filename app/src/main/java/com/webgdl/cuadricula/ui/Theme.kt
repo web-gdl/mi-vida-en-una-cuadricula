@@ -6,6 +6,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import com.webgdl.cuadricula.domain.eventColorArgb
 
 /** Paleta tomada del video: fondo casi negro, verde menta (vivido), magenta (lo que no vuelve). */
 object Palette {
@@ -19,15 +20,8 @@ object Palette {
     val Text = Color(0xFFE6EDF3)
     val Muted = Color(0xFF8A98A8)
 
-    /** Colores de las marcas de eventos periódicos (distintos de los de estado y de capas). */
-    val EventColors = listOf(
-        Color(0xFFFFFFFF), // blanco
-        Color(0xFF00E5FF), // cian
-        Color(0xFFFFEB3B), // amarillo
-        Color(0xFFFF80AB), // rosa
-    )
-
-    fun eventColor(index: Int): Color = EventColors[index % EventColors.size]
+    /** Color de la marca del evento periódico en la posición [index] (ver domain/Recurrence.kt). */
+    fun eventColor(index: Int): Color = Color(eventColorArgb(index))
 }
 
 private val Mono = FontFamily.Monospace

@@ -46,8 +46,8 @@ fun LifeGrid(
     entries: Map<Int, WeekEntry>,
     lastTimeWeeks: Set<Int>,
     layerRowColors: IntArray?,
-    /** Semana -> color de la marca del evento periódico que cae en ella. */
-    eventMarks: Map<Int, Color>,
+    /** Semana -> color ARGB de la marca del evento periódico que cae en ella. */
+    eventMarks: Map<Int, Int>,
     zoomed: Boolean,
     verticalScroll: ScrollState,
     viewportHeightPx: Int,
@@ -156,7 +156,7 @@ fun LifeGrid(
                     eventMarks[index]?.let { mark ->
                         val m = side * 0.5f
                         val o = (side - m) / 2f
-                        drawRect(color = mark, topLeft = Offset(x + o, y + o), size = Size(m, m))
+                        drawRect(color = Color(mark), topLeft = Offset(x + o, y + o), size = Size(m, m))
                     }
                 }
             }
